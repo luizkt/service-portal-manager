@@ -1,0 +1,10 @@
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://mongodb:27017/generic-orchestrator}
+      database: ${MONGODB_DATABASE:generic-orchestrator}
+
+logging:
+  level:
+    root: INFO
+    com.serviceportal.manager: INFO
