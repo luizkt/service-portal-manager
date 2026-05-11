@@ -43,27 +43,27 @@ class SecurityConfigIT {
     @MockkBean(relaxed = true)
     private lateinit var repo: FlowDocumentRepository
 
-    @Test @DisplayName("/manager/flows sem token -> 401")
-    fun semToken() {
+    @Test @DisplayName("/manager/flows without token -> 401")
+    fun withoutToken() {
         mvc.perform(get("/manager/flows")).andExpect(status().isUnauthorized)
     }
 
-    @Test @DisplayName("/api/auth/login é público")
-    fun loginPublico() {
+    @Test @DisplayName("POST /api/auth/tokens is public, returns 201 + token")
+    fun tokensPublic() {
         mvc.perform(
-            post("/api/auth/login")
+            post("/api/auth/tokens")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jackson.writeValueAsString(LoginRequest("admin", "admin")))
-        ).andExpect(status().isOk).andExpect(jsonPath("$.token").exists())
+        ).andExpect(status().isCreated).andExpect(jsonPath("$.token").exists())
     }
 
-    @Test @DisplayName("/actuator/health é público")
-    fun healthPublico() {
+    @Test @DisplayName("/actuator/health is public")
+    fun healthPublic() {
         mvc.perform(get("/actuator/health")).andExpect(status().isOk)
     }
 
-    @Test @DisplayName("Bearer token válido libera /manager/flows")
-    fun comToken() {
+    @Test @DisplayName("Valid Bearer token unlocks /manager/flows")
+    fun withToken() {
         every { repo.findAll(any<Pageable>()) } returns PageImpl(emptyList(), Pageable.unpaged(), 0)
         val token = jwtService.generateToken("admin")
         mvc.perform(get("/manager/flows").header("Authorization", "Bearer $token"))

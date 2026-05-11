@@ -11,13 +11,13 @@ import org.springframework.stereotype.Repository
  * Acesso à collection `workflows`.
  *
  * Contrato de projeção:
- *   - `findAll(Pageable)` e `findByAtivoTrue()` retornam documentos **sem** o campo
+ *   - `findAll(Pageable)` e `findByActiveTrue()` retornam documentos **sem** o campo
  *     `yamlContent` — economiza banda quando o caller só precisa de metadados
  *     (CRUD admin, lista de ativos para o orquestrador).
- *   - `findByFlowIdAndVersao(...)` também é leve (sem `yamlContent`) — usado pelo
- *     `GET /manager/flows/{id}/{versao}` que devolve só o summary.
- *   - `findByFlowIdAndVersaoWithYaml(...)` traz o documento completo — usado pelo
- *     endpoint `GET /manager/workflows/{id}/{versao}/yaml` e pelas mutações
+ *   - `findByFlowIdAndVersion(...)` também é leve (sem `yamlContent`) — usado pelo
+ *     `GET /manager/flows/{id}/versions/{v}` que devolve só o summary.
+ *   - `findByFlowIdAndVersionWithYaml(...)` traz o documento completo — usado pelo
+ *     endpoint `GET /manager/flows/{id}/versions/{v}/yaml` e pelas mutações
  *     (update/deactivate) que precisam preservar o `yamlContent` ao re-salvar.
  *
  * Importante: nas queries que projetam fora `yamlContent`, o objeto retornado
@@ -33,16 +33,16 @@ interface FlowDocumentRepository : MongoRepository<FlowDocument, String> {
     override fun findAll(pageable: Pageable): Page<FlowDocument>
 
     /** Lista de fluxos ativos — exclui yamlContent. Usado pelo orquestrador. */
-    @Query(value = "{ 'ativo': true }", fields = "{ 'yamlContent': 0 }")
-    fun findByAtivoTrue(): List<FlowDocument>
+    @Query(value = "{ 'active': true }", fields = "{ 'yamlContent': 0 }")
+    fun findByActiveTrue(): List<FlowDocument>
 
-    /** Get leve (sem yamlContent) — usado pelo `GET /manager/flows/{id}/{versao}`. */
-    @Query(value = "{ 'flowId': ?0, 'versao': ?1 }", fields = "{ 'yamlContent': 0 }")
-    fun findByFlowIdAndVersao(flowId: String, versao: String): FlowDocument?
+    /** Get leve (sem yamlContent) — usado pelo `GET /manager/flows/{id}/versions/{v}`. */
+    @Query(value = "{ 'flowId': ?0, 'version': ?1 }", fields = "{ 'yamlContent': 0 }")
+    fun findByFlowIdAndVersion(flowId: String, version: String): FlowDocument?
 
     /** Get completo — usado pelo `GET /yaml` e por mutações que precisam preservar yamlContent. */
-    @Query(value = "{ 'flowId': ?0, 'versao': ?1 }")
-    fun findByFlowIdAndVersaoWithYaml(flowId: String, versao: String): FlowDocument?
+    @Query(value = "{ 'flowId': ?0, 'version': ?1 }")
+    fun findByFlowIdAndVersionWithYaml(flowId: String, version: String): FlowDocument?
 
-    fun existsByFlowIdAndVersao(flowId: String, versao: String): Boolean
+    fun existsByFlowIdAndVersion(flowId: String, version: String): Boolean
 }

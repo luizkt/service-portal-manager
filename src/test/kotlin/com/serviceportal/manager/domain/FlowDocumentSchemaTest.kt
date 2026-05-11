@@ -45,12 +45,12 @@ class FlowDocumentSchemaTest {
         assertThat(field.type).isEqualTo(String::class.java)
     }
 
-    @Test @DisplayName("Campos esperados estão declarados")
-    fun camposDeclarados() {
-        val nomes = klass.declaredFields.map { it.name }.toSet()
-        assertThat(nomes).contains(
-            "mongoId", "flowId", "versao", "descricao",
-            "ativo", "yamlContent", "criadoEm", "atualizadoEm"
+    @Test @DisplayName("Campos esperados estão declarados (todos em inglês após o refactor REST)")
+    fun expectedFields() {
+        val names = klass.declaredFields.map { it.name }.toSet()
+        assertThat(names).contains(
+            "mongoId", "flowId", "version", "description",
+            "active", "yamlContent", "createdAt", "updatedAt"
         )
     }
 }

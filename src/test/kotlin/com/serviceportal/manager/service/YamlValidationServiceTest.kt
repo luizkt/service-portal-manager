@@ -11,140 +11,140 @@ class YamlValidationServiceTest {
     private val service = YamlValidationService()
 
     private val validYaml = """
-        fluxo:
-          id: "criar-pedido-v1"
-          versao: "1.0.0"
-          descricao: "Cria pedido"
-          ativo: true
-          contrato:
-            campos:
-              - nome: x
-                tipo: STRING
-          integracoes:
+        flow:
+          id: "create-order-v1"
+          version: "1.0.0"
+          description: "Creates order"
+          active: true
+          contract:
+            fields:
+              - name: x
+                type: STRING
+          integrations:
             - id: int1
-              ordem: 1
-              tipo: HTTP
+              order: 1
+              type: HTTP
               http:
                 url: http://x
-                metodo: GET
+                method: GET
         """.trimIndent()
 
-    @Test @DisplayName("Extrai metadados de YAML válido")
-    fun valido() {
+    @Test @DisplayName("Extracts metadata from a valid YAML")
+    fun valid() {
         val meta = service.extractMetadata(validYaml)
-        assertThat(meta.flowId).isEqualTo("criar-pedido-v1")
-        assertThat(meta.versao).isEqualTo("1.0.0")
-        assertThat(meta.descricao).isEqualTo("Cria pedido")
-        assertThat(meta.ativo).isTrue()
+        assertThat(meta.flowId).isEqualTo("create-order-v1")
+        assertThat(meta.version).isEqualTo("1.0.0")
+        assertThat(meta.description).isEqualTo("Creates order")
+        assertThat(meta.active).isTrue()
     }
 
-    @Test @DisplayName("ativo default = true quando ausente")
-    fun ativoDefault() {
-        val yaml = validYaml.replace("ativo: true", "")
-        assertThat(service.extractMetadata(yaml).ativo).isTrue()
+    @Test @DisplayName("active defaults to true when missing")
+    fun activeDefault() {
+        val yaml = validYaml.replace("active: true", "")
+        assertThat(service.extractMetadata(yaml).active).isTrue()
     }
 
-    @Test @DisplayName("descricao opcional")
-    fun descricaoOpcional() {
-        val yaml = validYaml.replace("descricao: \"Cria pedido\"", "")
-        assertThat(service.extractMetadata(yaml).descricao).isNull()
+    @Test @DisplayName("description is optional")
+    fun descriptionOptional() {
+        val yaml = validYaml.replace("description: \"Creates order\"", "")
+        assertThat(service.extractMetadata(yaml).description).isNull()
     }
 
-    @Test @DisplayName("YAML vazio é rejeitado")
-    fun vazio() {
+    @Test @DisplayName("Empty YAML is rejected")
+    fun empty() {
         assertThatThrownBy { service.extractMetadata("   ") }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
-            .hasMessageContaining("vazio")
+            .hasMessageContaining("Empty")
     }
 
-    @Test @DisplayName("YAML malformado é rejeitado")
-    fun malformado() {
+    @Test @DisplayName("Malformed YAML is rejected")
+    fun malformed() {
         assertThatThrownBy { service.extractMetadata(":\n  - not: [valid") }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
-            .hasMessageContaining("inválido")
+            .hasMessageContaining("Invalid")
     }
 
-    @Test @DisplayName("Sem chave 'fluxo' é rejeitado")
-    fun semFluxo() {
-        assertThatThrownBy { service.extractMetadata("outro:\n  id: x") }
+    @Test @DisplayName("Missing 'flow' root key is rejected")
+    fun missingFlow() {
+        assertThatThrownBy { service.extractMetadata("other:\n  id: x") }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
-            .hasMessageContaining("'fluxo'")
+            .hasMessageContaining("'flow'")
     }
 
-    @Test @DisplayName("Sem id é rejeitado")
-    fun semId() {
+    @Test @DisplayName("Missing id is rejected")
+    fun missingId() {
         val yaml = """
-            fluxo:
-              versao: "1.0.0"
-              contrato: {}
-              integracoes:
+            flow:
+              version: "1.0.0"
+              contract: {}
+              integrations:
                 - id: x
             """.trimIndent()
         assertThatThrownBy { service.extractMetadata(yaml) }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
-            .hasMessageContaining("'fluxo.id'")
+            .hasMessageContaining("'flow.id'")
     }
 
-    @Test @DisplayName("Sem versao é rejeitado")
-    fun semVersao() {
+    @Test @DisplayName("Missing version is rejected")
+    fun missingVersion() {
         val yaml = """
-            fluxo:
+            flow:
               id: "x"
-              contrato: {}
-              integracoes:
+              contract: {}
+              integrations:
                 - id: y
             """.trimIndent()
         assertThatThrownBy { service.extractMetadata(yaml) }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
-            .hasMessageContaining("'fluxo.versao'")
+            .hasMessageContaining("'flow.version'")
     }
 
-    @Test @DisplayName("Sem contrato é rejeitado")
-    fun semContrato() {
+    @Test @DisplayName("Missing contract is rejected")
+    fun missingContract() {
         val yaml = """
-            fluxo:
+            flow:
               id: "x"
-              versao: "1.0"
-              integracoes:
+              version: "1.0"
+              integrations:
                 - id: y
             """.trimIndent()
         assertThatThrownBy { service.extractMetadata(yaml) }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
-            .hasMessageContaining("'fluxo.contrato'")
+            .hasMessageContaining("'flow.contract'")
     }
 
-    @Test @DisplayName("Integrações vazias é rejeitado")
-    fun integracoesVazias() {
+    @Test @DisplayName("Empty integrations is rejected")
+    fun emptyIntegrations() {
         val yaml = """
-            fluxo:
+            flow:
               id: "x"
-              versao: "1.0"
-              contrato: {}
-              integracoes: []
+              version: "1.0"
+              contract: {}
+              integrations: []
             """.trimIndent()
         assertThatThrownBy { service.extractMetadata(yaml) }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
-            .hasMessageContaining("integração")
+            .hasMessageContaining("integration")
     }
 
-    @Test @DisplayName("Integrações ausentes é rejeitado")
-    fun semIntegracoes() {
+    @Test @DisplayName("Missing integrations is rejected")
+    fun missingIntegrations() {
         val yaml = """
-            fluxo:
+            flow:
               id: "x"
-              versao: "1.0"
-              contrato: {}
+              version: "1.0"
+              contract: {}
             """.trimIndent()
         assertThatThrownBy { service.extractMetadata(yaml) }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
-            .hasMessageContaining("integração")
+            .hasMessageContaining("integration")
     }
 
-    @Test @DisplayName("id em branco é rejeitado")
-    fun idEmBranco() {
-        val yaml = validYaml.replace("\"criar-pedido-v1\"", "\"\"")
+    @Test @DisplayName("Blank id is rejected")
+    fun blankId() {
+        val yaml = validYaml.replace("\"create-order-v1\"", "\"\"")
         assertThatThrownBy { service.extractMetadata(yaml) }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
-            .hasMessageContaining("'fluxo.id'")
+            .hasMessageContaining("'flow.id'")
     }
 }

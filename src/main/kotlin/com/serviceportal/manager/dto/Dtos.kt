@@ -5,14 +5,14 @@ import java.time.LocalDateTime
 /** Resposta resumida de um fluxo — usada nos GETs e na lista de ativos. */
 data class FlowSummaryDto(
     val flowId: String,
-    val versao: String,
-    val descricao: String?,
-    val ativo: Boolean,
-    val criadoEm: LocalDateTime,
-    val atualizadoEm: LocalDateTime
+    val version: String,
+    val description: String?,
+    val active: Boolean,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime
 )
 
-/** Login JWT (compatível com o esquema do generic-orchestrator). */
+/** Login JWT (mesmo schema compartilhado com o orquestrador). */
 data class LoginRequest(
     val username: String,
     val password: String

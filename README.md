@@ -49,7 +49,7 @@ src/main/kotlin/com/serviceportal/manager/
 ├── repository/
 │   └── FlowDocumentRepository.kt               # Projection (sem yamlContent) + paginação + WithYaml
 ├── service/
-│   ├── YamlValidationService.kt                # extrai metadados (id, versao, descricao, ativo)
+│   ├── YamlValidationService.kt                # extrai metadados (id, version, description, active)
 │   └── FlowDocumentService.kt                  # CRUD paginado + listActive + getYaml
 ├── controller/
 │   ├── FlowController.kt                       # /manager/flows (CRUD)
@@ -58,7 +58,7 @@ src/main/kotlin/com/serviceportal/manager/
 │   ├── SecurityConfig.kt                       # JWT + 401 entry point
 │   ├── JwtService.kt                           # HS512 — gerar/validar tokens
 │   ├── JwtAuthenticationFilter.kt              # OncePerRequestFilter
-│   └── AuthController.kt                       # /api/auth/login
+│   └── AuthController.kt                       # /api/auth/tokens
 ├── dto/
 │   └── Dtos.kt                                 # FlowSummaryDto, LoginRequest, LoginResponse
 └── exception/
@@ -170,7 +170,7 @@ Todos os endpoints (exceto `/api/auth/**`, `/actuator/health` e `/actuator/info`
 ### Autenticação
 
 ```bash
-curl -X POST http://localhost:8082/api/auth/login \
+curl -X POST http://localhost:8082/api/auth/tokens \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin"}'
 # → {"token":"eyJ...","expiresIn":3600}
@@ -180,22 +180,22 @@ curl -X POST http://localhost:8082/api/auth/login \
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| POST | `/api/auth/login` | Gera token JWT |
+| POST | `/api/auth/tokens` | Gera token JWT |
 | POST | `/manager/flows` | Cria fluxo (body: YAML) |
 | GET | `/manager/flows?page=&size=&sort=` | **Lista paginada** de todos os fluxos — sem `yamlContent` |
-| GET | `/manager/flows/{id}/{versao}` | Busca metadados de um fluxo (sem `yamlContent`) |
-| PUT | `/manager/flows/{id}/{versao}` | Atualiza fluxo (body: YAML) |
-| DELETE | `/manager/flows/{id}/{versao}` | Soft-delete (seta `ativo=false`) |
-| GET | `/manager/workflows/active` | Lista compacta de fluxos ativos (sem `yamlContent`) — consumido pelo orquestrador |
-| GET | `/manager/workflows/{id}/{versao}/yaml` | YAML cru — consumido pelo orquestrador |
+| GET | `/manager/flows/{flowId}/versions/{version}` | Busca metadados de um fluxo (sem `yamlContent`) |
+| PUT | `/manager/flows/{flowId}/versions/{version}` | Atualiza fluxo (body: YAML) |
+| DELETE | `/manager/flows/{flowId}/versions/{version}` | Soft-delete (seta `active=false`) |
+| GET | `/manager/flows?status=active` | Lista compacta de fluxos ativos (sem `yamlContent`) — consumido pelo orquestrador |
+| GET | `/manager/flows/{flowId}/versions/{version}/yaml` | YAML cru — consumido pelo orquestrador |
 | GET | `/actuator/health` | Health check (público) |
 
 ### Paginação em `GET /manager/flows`
 
-Query params padrão de Spring Data (`page`, `size`, `sort`). Defaults: `page=0`, `size=20`, ordenação por `flowId,versao` ascendente. Limite máximo de 100 itens por página (`spring.data.web.pageable.max-page-size`).
+Query params padrão de Spring Data (`page`, `size`, `sort`). Defaults: `page=0`, `size=20`, ordenação por `flowId,version` ascendente. Limite máximo de 100 itens por página (`spring.data.web.pageable.max-page-size`).
 
 ```bash
-curl -s "http://localhost:8082/manager/flows?page=0&size=20&sort=criadoEm,desc" \
+curl -s "http://localhost:8082/manager/flows?page=0&size=20&sort=createdAt,desc" \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
@@ -204,8 +204,8 @@ Resposta:
 ```json
 {
   "content": [
-    {"flowId": "criar-pedido-v1", "versao": "1.0.0", "descricao": "...", "ativo": true,
-     "criadoEm": "...", "atualizadoEm": "..."}
+    {"flowId": "create-order-v1", "version": "1.0.0", "description": "...", "active": true,
+     "createdAt": "...", "updatedAt": "..."}
   ],
   "totalElements": 3,
   "totalPages": 1,
@@ -218,12 +218,12 @@ Resposta:
 
 ### Por que listas não trazem `yamlContent`
 
-`findAll(Pageable)` e `findByAtivoTrue()` usam projection MongoDB excluindo `yamlContent` — evita trafegar dezenas/centenas de KB por fluxo quando o caller só quer metadados. Para receber o YAML, usar exclusivamente `GET /manager/workflows/{id}/{versao}/yaml`.
+`findAll(Pageable)` e `findByAtivoTrue()` usam projection MongoDB excluindo `yamlContent` — evita trafegar dezenas/centenas de KB por fluxo quando o caller só quer metadados. Para receber o YAML, usar exclusivamente `GET /manager/flows/{flowId}/versions/{version}/yaml`.
 
 ### Exemplos
 
 ```bash
-TOKEN=$(curl -s -X POST http://localhost:8082/api/auth/login \
+TOKEN=$(curl -s -X POST http://localhost:8082/api/auth/tokens \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin"}' | jq -r '.token')
 
@@ -234,11 +234,11 @@ curl -X POST http://localhost:8082/manager/flows \
   --data-binary @meu-fluxo.yml
 
 # Listar fluxos ativos (orquestrador consome após migração)
-curl -s http://localhost:8082/manager/workflows/active \
+curl -s http://localhost:8082/manager/flows?status=active \
   -H "Authorization: Bearer $TOKEN" | jq
 
 # Recuperar YAML cru de um fluxo (orquestrador consome após migração)
-curl -s http://localhost:8082/manager/workflows/criar-pedido-v1/1.0.0/yaml \
+curl -s http://localhost:8082/manager/workflows/create-order-v1/1.0.0/yaml \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -246,10 +246,10 @@ curl -s http://localhost:8082/manager/workflows/criar-pedido-v1/1.0.0/yaml \
 
 | Código | Quando |
 |---|---|
-| `400 INVALID_FLOW` | YAML inválido, sem `fluxo`/`id`/`versao`/`contrato`/`integracoes`, ou `id`/`versao` do path divergente do YAML em PUT |
+| `400 INVALID_FLOW` | YAML inválido, sem `flow`/`id`/`version`/`contract`/`integrations`, ou `id`/`version` do path divergente do YAML em PUT |
 | `401` | Sem token ou token inválido |
-| `404 FLOW_NOT_FOUND` | Fluxo `{id}/{versao}` não existe — ou existe mas foi criado antes do Manager (sem `yamlContent`) e o cliente pediu o YAML |
-| `409 FLOW_ALREADY_EXISTS` | POST tentando criar `{id}/{versao}` que já existe |
+| `404 FLOW_NOT_FOUND` | Fluxo `{flowId}/versions/{version}` não existe — ou existe mas foi criado antes do Manager (sem `yamlContent`) e o cliente pediu o YAML |
+| `409 FLOW_ALREADY_EXISTS` | POST tentando criar `{flowId}/versions/{version}` que já existe |
 
 ---
 
@@ -262,13 +262,13 @@ Collection compartilhada com o `generic-orchestrator`. Documentos criados via Ma
 ```js
 {
   "_id": ObjectId("6a0091c36edcca219a4f692f"),
-  "flowId": "criar-pedido-v1",
-  "versao": "1.0.0",
-  "descricao": "Fluxo de criação de pedido",
-  "ativo": true,
-  "yamlContent": "fluxo:\n  id: \"criar-pedido-v1\"\n  ...",
-  "criadoEm": ISODate("2026-05-10T14:10:10.999Z"),
-  "atualizadoEm": ISODate("2026-05-10T14:10:10.999Z"),
+  "flowId": "create-order-v1",
+  "version": "1.0.0",
+  "description": "Fluxo de criação de pedido",
+  "active": true,
+  "yamlContent": "fluxo:\n  id: \"create-order-v1\"\n  ...",
+  "createdAt": ISODate("2026-05-10T14:10:10.999Z"),
+  "updatedAt": ISODate("2026-05-10T14:10:10.999Z"),
   "_class": "com.serviceportal.manager.domain.FlowDocument"
 }
 ```
@@ -276,15 +276,15 @@ Collection compartilhada com o `generic-orchestrator`. Documentos criados via Ma
 | Campo | Tipo | Origem | Observação |
 |---|---|---|---|
 | `_id` | ObjectId | Mongo | gerado automaticamente |
-| `flowId` | String | YAML `fluxo.id` | mesmo nome usado pelo orquestrador (sem `@Field` override) |
-| `versao` | String | YAML `fluxo.versao` | participa do índice composto único |
-| `descricao` | String? | YAML `fluxo.descricao` | nullable |
-| `ativo` | Boolean | YAML `fluxo.ativo` | default `true` se ausente; soft-delete usa `false` |
+| `flowId` | String | YAML `flow.id` | mesmo nome usado pelo orquestrador (sem `@Field` override) |
+| `version` | String | YAML `flow.version` | participa do índice composto único |
+| `description` | String? | YAML `flow.description` | nullable |
+| `ativo` | Boolean | YAML `flow.active` | default `true` se ausente; soft-delete usa `false` |
 | `yamlContent` | String | body do `POST /manager/flows` | YAML cru, **fonte de verdade** |
-| `criadoEm` / `atualizadoEm` | ISODate | Manager | timestamps do serviço |
+| `createdAt` / `updatedAt` | ISODate | Manager | timestamps do serviço |
 | `_class` | String | Spring Data Mongo | nome qualificado da classe |
 
-Índice composto único em `flowId` + `versao` declarado em [`mongodb-workflows/init-mongo.js`](../generic-orchestrator/mongodb-workflows/init-mongo.js) — coexiste com docs do orquestrador. O Manager **não** versiona automaticamente — quem decide a versão é quem submete o YAML; tentativa de POST com `{flowId, versao}` existente devolve 409.
+Índice composto único em `flowId` + `version` declarado em [`mongodb-workflows/init-mongo.js`](../generic-orchestrator/mongodb-workflows/init-mongo.js) — coexiste com docs do orquestrador. O Manager **não** versiona automaticamente — quem decide a versão é quem submete o YAML; tentativa de POST com `{flowId, version}` existente devolve 409.
 
 > ⚠️ **Save sobrescreve o doc inteiro.** Para evitar zerar `yamlContent` em mutações (update/deactivate), o serviço carrega o doc completo via `findByFlowIdAndVersaoWithYaml(...)` antes de salvar. As listas (`findAll(Pageable)`, `findByAtivoTrue`) e o `get` simples usam projection sem `yamlContent` — operações somente-leitura por design.
 
@@ -292,12 +292,12 @@ Collection compartilhada com o `generic-orchestrator`. Documentos criados via Ma
 
 O Manager **não** duplica os modelos do orquestrador. Apenas valida:
 
-1. `fluxo` é a chave raiz
-2. `fluxo.id` e `fluxo.versao` são strings não-vazias
-3. `fluxo.contrato` está presente
-4. `fluxo.integracoes` é uma lista não-vazia
+1. `flow` é a chave raiz
+2. `flow.id` e `flow.version` são strings não-vazias
+3. `flow.contract` está presente
+4. `flow.integrations` é uma lista não-vazia
 
-A validação profunda (campos por tipo de integração, regras de validação do contrato, etc.) continua no orquestrador, na execução. Se o YAML passar pelo Manager mas falhar no orquestrador, o erro acontece no momento do `POST /api/orchestrate/{version}/{flowId}`.
+A validação profunda (campos por tipo de integração, regras de validação do contrato, etc.) continua no orquestrador, na execução. Se o YAML passar pelo Manager mas falhar no orquestrador, o erro acontece no momento do `POST /api/flows/{flowId}/versions/{version}/executions`.
 
 ---
 

@@ -19,51 +19,51 @@ class FlowDocumentService(
 
     fun create(yamlContent: String): FlowSummaryDto {
         val meta = yamlValidator.extractMetadata(yamlContent)
-        if (repository.existsByFlowIdAndVersao(meta.flowId, meta.versao)) {
+        if (repository.existsByFlowIdAndVersion(meta.flowId, meta.version)) {
             throw FlowAlreadyExistsException(
-                "Fluxo '${meta.flowId}' versão '${meta.versao}' já existe"
+                "Flow '${meta.flowId}' version '${meta.version}' already exists"
             )
         }
         val now = LocalDateTime.now()
         val saved = repository.save(
             FlowDocument(
                 flowId = meta.flowId,
-                versao = meta.versao,
-                descricao = meta.descricao,
-                ativo = meta.ativo,
+                version = meta.version,
+                description = meta.description,
+                active = meta.active,
                 yamlContent = yamlContent,
-                criadoEm = now,
-                atualizadoEm = now
+                createdAt = now,
+                updatedAt = now
             )
         )
         return saved.toSummary()
     }
 
-    fun update(flowId: String, versao: String, yamlContent: String): FlowSummaryDto {
+    fun update(flowId: String, version: String, yamlContent: String): FlowSummaryDto {
         val meta = yamlValidator.extractMetadata(yamlContent)
-        if (meta.flowId != flowId || meta.versao != versao) {
+        if (meta.flowId != flowId || meta.version != version) {
             throw InvalidFlowDefinitionException(
-                "id/versão do path (${flowId}/${versao}) não bate com o YAML (${meta.flowId}/${meta.versao})"
+                "Path id/version (${flowId}/${version}) does not match YAML (${meta.flowId}/${meta.version})"
             )
         }
         // WithYaml: precisamos do doc completo para que repository.save() não
         // zere o yamlContent (save substitui o doc inteiro por _id).
-        val existing = repository.findByFlowIdAndVersaoWithYaml(flowId, versao)
-            ?: throw FlowNotFoundException("Fluxo '$flowId' versão '$versao' não encontrado")
+        val existing = repository.findByFlowIdAndVersionWithYaml(flowId, version)
+            ?: throw FlowNotFoundException("Flow '$flowId' version '$version' not found")
 
         existing.apply {
-            this.descricao = meta.descricao
-            this.ativo = meta.ativo
+            this.description = meta.description
+            this.active = meta.active
             this.yamlContent = yamlContent
-            this.atualizadoEm = LocalDateTime.now()
+            this.updatedAt = LocalDateTime.now()
         }
         return repository.save(existing).toSummary()
     }
 
     /** GET leve — sem yamlContent. */
-    fun get(flowId: String, versao: String): FlowSummaryDto =
-        (repository.findByFlowIdAndVersao(flowId, versao)
-            ?: throw FlowNotFoundException("Fluxo '$flowId' versão '$versao' não encontrado")
+    fun get(flowId: String, version: String): FlowSummaryDto =
+        (repository.findByFlowIdAndVersion(flowId, version)
+            ?: throw FlowNotFoundException("Flow '$flowId' version '$version' not found")
         ).toSummary()
 
     /** Listagem paginada — sem yamlContent. */
@@ -71,33 +71,33 @@ class FlowDocumentService(
         repository.findAll(pageable).map { it.toSummary() }
 
     /** Lista de ativos para o orquestrador — sem yamlContent. */
-    fun listActive(): List<FlowSummaryDto> = repository.findByAtivoTrue().map { it.toSummary() }
+    fun listActive(): List<FlowSummaryDto> = repository.findByActiveTrue().map { it.toSummary() }
 
-    fun deactivate(flowId: String, versao: String) {
+    fun deactivate(flowId: String, version: String) {
         // WithYaml para preservar yamlContent ao re-salvar (vide comentário em update).
-        val doc = repository.findByFlowIdAndVersaoWithYaml(flowId, versao)
-            ?: throw FlowNotFoundException("Fluxo '$flowId' versão '$versao' não encontrado")
-        if (!doc.ativo) return
-        doc.ativo = false
-        doc.atualizadoEm = LocalDateTime.now()
+        val doc = repository.findByFlowIdAndVersionWithYaml(flowId, version)
+            ?: throw FlowNotFoundException("Flow '$flowId' version '$version' not found")
+        if (!doc.active) return
+        doc.active = false
+        doc.updatedAt = LocalDateTime.now()
         repository.save(doc)
     }
 
-    fun getYaml(flowId: String, versao: String): String {
-        val doc = repository.findByFlowIdAndVersaoWithYaml(flowId, versao)
-            ?: throw FlowNotFoundException("Fluxo '$flowId' versão '$versao' não encontrado")
+    fun getYaml(flowId: String, version: String): String {
+        val doc = repository.findByFlowIdAndVersionWithYaml(flowId, version)
+            ?: throw FlowNotFoundException("Flow '$flowId' version '$version' not found")
         return doc.yamlContent
             ?: throw FlowNotFoundException(
-                "Fluxo '$flowId' versão '$versao' não tem yamlContent — provavelmente foi criado fora do Manager"
+                "Flow '$flowId' version '$version' has no yamlContent — likely created outside the Manager"
             )
     }
 
     private fun FlowDocument.toSummary() = FlowSummaryDto(
         flowId = flowId,
-        versao = versao,
-        descricao = descricao,
-        ativo = ativo,
-        criadoEm = criadoEm,
-        atualizadoEm = atualizadoEm
+        version = version,
+        description = description,
+        active = active,
+        createdAt = createdAt,
+        updatedAt = updatedAt
     )
 }

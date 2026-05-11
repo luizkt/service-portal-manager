@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
  * Validação leve do YAML antes de persistir.
  *
  * Não duplica os modelos do orquestrador — só extrai os metadados que o Manager
- * precisa indexar (`id`, `versao`, `descricao`, `ativo`) e garante que a estrutura
+ * precisa indexar (`id`, `version`, `description`, `active`) e garante que a estrutura
  * mínima existe. A validação profunda continua no orquestrador, na execução.
  */
 @Service
@@ -19,45 +19,45 @@ class YamlValidationService {
 
     data class FlowMetadata(
         val flowId: String,
-        val versao: String,
-        val descricao: String?,
-        val ativo: Boolean
+        val version: String,
+        val description: String?,
+        val active: Boolean
     )
 
     fun extractMetadata(yamlContent: String): FlowMetadata {
         if (yamlContent.isBlank()) {
-            throw InvalidFlowDefinitionException("YAML vazio")
+            throw InvalidFlowDefinitionException("Empty YAML")
         }
 
         val root: Map<String, Any?> = try {
             @Suppress("UNCHECKED_CAST")
             mapper.readValue(yamlContent, Map::class.java) as Map<String, Any?>
         } catch (e: Exception) {
-            throw InvalidFlowDefinitionException("YAML inválido: ${e.message}")
+            throw InvalidFlowDefinitionException("Invalid YAML: ${e.message}")
         }
 
         @Suppress("UNCHECKED_CAST")
-        val fluxo = root["fluxo"] as? Map<String, Any?>
-            ?: throw InvalidFlowDefinitionException("YAML deve conter a chave raiz 'fluxo'")
+        val flow = root["flow"] as? Map<String, Any?>
+            ?: throw InvalidFlowDefinitionException("YAML must contain root key 'flow'")
 
-        val flowId = (fluxo["id"] as? String)?.takeIf { it.isNotBlank() }
-            ?: throw InvalidFlowDefinitionException("O campo 'fluxo.id' é obrigatório")
+        val flowId = (flow["id"] as? String)?.takeIf { it.isNotBlank() }
+            ?: throw InvalidFlowDefinitionException("Field 'flow.id' is required")
 
-        val versao = (fluxo["versao"] as? String)?.takeIf { it.isNotBlank() }
-            ?: throw InvalidFlowDefinitionException("O campo 'fluxo.versao' é obrigatório")
+        val version = (flow["version"] as? String)?.takeIf { it.isNotBlank() }
+            ?: throw InvalidFlowDefinitionException("Field 'flow.version' is required")
 
-        if (fluxo["contrato"] == null) {
-            throw InvalidFlowDefinitionException("O campo 'fluxo.contrato' é obrigatório")
+        if (flow["contract"] == null) {
+            throw InvalidFlowDefinitionException("Field 'flow.contract' is required")
         }
 
-        val integracoes = fluxo["integracoes"] as? List<*>
-        if (integracoes.isNullOrEmpty()) {
-            throw InvalidFlowDefinitionException("O fluxo deve ter ao menos uma integração")
+        val integrations = flow["integrations"] as? List<*>
+        if (integrations.isNullOrEmpty()) {
+            throw InvalidFlowDefinitionException("Flow must have at least one integration")
         }
 
-        val descricao = fluxo["descricao"] as? String
-        val ativo = fluxo["ativo"] as? Boolean ?: true
+        val description = flow["description"] as? String
+        val active = flow["active"] as? Boolean ?: true
 
-        return FlowMetadata(flowId, versao, descricao, ativo)
+        return FlowMetadata(flowId, version, description, active)
     }
 }
