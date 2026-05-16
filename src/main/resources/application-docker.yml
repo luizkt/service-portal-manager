@@ -4,6 +4,16 @@ spring:
       uri: ${MONGODB_URI:mongodb://mongodb:27017/generic-orchestrator}
       database: ${MONGODB_DATABASE:generic-orchestrator}
 
+manager:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:CHANGE_ME_PLEASE_THIS_IS_A_DEV_ONLY_SECRET_AT_LEAST_64_CHARS_LONG_FOR_HS512}
+      expiration-seconds: ${JWT_EXPIRATION:3600}
+      issuer: ${JWT_ISSUER:service-portal-manager}
+    admin:
+      username: ${MANAGER_ADMIN_USERNAME:admin}
+      password: ${MANAGER_ADMIN_PASSWORD:admin}
+
 logging:
   level:
     root: INFO
