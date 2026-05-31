@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.net.URI
 
 /**
  * Endpoints REST para gerenciamento de workflows.
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController
  *
  * Filtros como query params (não no path):
  *   - `GET /manager/flows?status=active`              (substitui o antigo `/workflows/active`)
+ *   - `GET /manager/flows/{flowId}/versions?status=active|inactive` (histórico de versões)
  */
 @RestController
 @RequestMapping("/manager/flows")
@@ -67,6 +69,19 @@ class FlowController(private val service: FlowDocumentService) {
         return ResponseEntity.ok<Any>(service.listAll(pageable))
     }
 
+    /**
+     * Lista todas as versões de um flow específico.
+     * - `?status=active`   → somente versões ativas
+     * - `?status=inactive` → somente versões desativadas (histórico)
+     * - sem parâmetro      → todas as versões
+     */
+    @GetMapping("/{flowId}/versions")
+    fun listVersions(
+        @PathVariable flowId: String,
+        @RequestParam(required = false) status: String?
+    ): ResponseEntity<List<FlowSummaryDto>> =
+        ResponseEntity.ok(service.listVersions(flowId, status))
+
     @GetMapping("/{flowId}/versions/{version}")
     fun get(
         @PathVariable flowId: String,
@@ -85,6 +100,15 @@ class FlowController(private val service: FlowDocumentService) {
             .body(yaml)
     }
 
+    /**
+     * Atualiza um workflow gerando nova versão via SemVer:
+     * - MAJOR se `contract` mudou
+     * - MINOR se `integrations` mudou
+     * - PATCH se apenas `description` (ou outro campo menor) mudou
+     *
+     * Retorna 201 com cabeçalho `Location` apontando para a nova versão criada.
+     * A versão antiga é desativada automaticamente.
+     */
     @PutMapping("/{flowId}/versions/{version}", consumes = [
         MediaType.TEXT_PLAIN_VALUE,
         "application/x-yaml",
@@ -95,7 +119,11 @@ class FlowController(private val service: FlowDocumentService) {
         @PathVariable flowId: String,
         @PathVariable version: String,
         @RequestBody yaml: String
-    ): ResponseEntity<FlowSummaryDto> = ResponseEntity.ok(service.update(flowId, version, yaml))
+    ): ResponseEntity<FlowSummaryDto> {
+        val result = service.update(flowId, version, yaml)
+        val location = URI.create("/manager/flows/$flowId/versions/${result.version}")
+        return ResponseEntity.created(location).body(result)
+    }
 
     @DeleteMapping("/{flowId}/versions/{version}")
     fun delete(

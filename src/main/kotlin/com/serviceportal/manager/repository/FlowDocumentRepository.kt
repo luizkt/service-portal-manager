@@ -3,6 +3,7 @@ package com.serviceportal.manager.repository
 import com.serviceportal.manager.domain.FlowDocument
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.data.mongodb.repository.Query
 import org.springframework.stereotype.Repository
@@ -32,9 +33,13 @@ interface FlowDocumentRepository : MongoRepository<FlowDocument, String> {
     @Query(value = "{}", fields = "{ 'yamlContent': 0 }")
     override fun findAll(pageable: Pageable): Page<FlowDocument>
 
-    /** Lista de fluxos ativos — exclui yamlContent. Usado pelo orquestrador. */
+    /** Lista de fluxos ativos — exclui yamlContent. Usado pelo orquestrador (sem paginação). */
     @Query(value = "{ 'active': true }", fields = "{ 'yamlContent': 0 }")
     fun findByActiveTrue(): List<FlowDocument>
+
+    /** Lista paginada de fluxos ativos — exclui yamlContent. Usado pelo endpoint de listagem. */
+    @Query(value = "{ 'active': true }", fields = "{ 'yamlContent': 0 }")
+    fun findAllByActiveTrue(pageable: Pageable): Page<FlowDocument>
 
     /** Get leve (sem yamlContent) — usado pelo `GET /manager/flows/{id}/versions/{v}`. */
     @Query(value = "{ 'flowId': ?0, 'version': ?1 }", fields = "{ 'yamlContent': 0 }")
@@ -45,4 +50,12 @@ interface FlowDocumentRepository : MongoRepository<FlowDocument, String> {
     fun findByFlowIdAndVersionWithYaml(flowId: String, version: String): FlowDocument?
 
     fun existsByFlowIdAndVersion(flowId: String, version: String): Boolean
+
+    /** Todas as versões de um flow (ativas + inativas) — exclui yamlContent. */
+    @Query(value = "{ 'flowId': ?0 }", fields = "{ 'yamlContent': 0 }")
+    fun findAllByFlowId(flowId: String, sort: Sort): List<FlowDocument>
+
+    /** Versões de um flow filtradas por active — exclui yamlContent. */
+    @Query(value = "{ 'flowId': ?0, 'active': ?1 }", fields = "{ 'yamlContent': 0 }")
+    fun findAllByFlowIdAndActive(flowId: String, active: Boolean, sort: Sort): List<FlowDocument>
 }

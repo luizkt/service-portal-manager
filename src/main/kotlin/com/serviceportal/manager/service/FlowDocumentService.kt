@@ -8,13 +8,15 @@ import com.serviceportal.manager.exception.InvalidFlowDefinitionException
 import com.serviceportal.manager.repository.FlowDocumentRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
 class FlowDocumentService(
     private val repository: FlowDocumentRepository,
-    private val yamlValidator: YamlValidationService
+    private val yamlValidator: YamlValidationService,
+    private val versioning: VersioningService
 ) {
 
     fun create(yamlContent: String): FlowSummaryDto {
@@ -39,25 +41,53 @@ class FlowDocumentService(
         return saved.toSummary()
     }
 
+    /**
+     * Atualiza um workflow aplicando versionamento semântico:
+     * - detecta o tipo de mudança (MAJOR/MINOR/PATCH) comparando seções contract/integrations/description
+     * - mantém a versão corrente ativa (plano de migração: clientes migram para a nova URL quando prontos)
+     * - persiste a nova versão ativa com a versão calculada
+     *
+     * Retorna o FlowSummaryDto da nova versão criada.
+     */
     fun update(flowId: String, version: String, yamlContent: String): FlowSummaryDto {
         val meta = yamlValidator.extractMetadata(yamlContent)
-        if (meta.flowId != flowId || meta.version != version) {
+        if (meta.flowId != flowId) {
             throw InvalidFlowDefinitionException(
-                "Path id/version (${flowId}/${version}) does not match YAML (${meta.flowId}/${meta.version})"
+                "Path flowId ($flowId) does not match YAML flow.id (${meta.flowId})"
             )
         }
-        // WithYaml: precisamos do doc completo para que repository.save() não
-        // zere o yamlContent (save substitui o doc inteiro por _id).
+
         val existing = repository.findByFlowIdAndVersionWithYaml(flowId, version)
             ?: throw FlowNotFoundException("Flow '$flowId' version '$version' not found")
 
-        existing.apply {
-            this.description = meta.description
-            this.active = meta.active
-            this.yamlContent = yamlContent
-            this.updatedAt = LocalDateTime.now()
+        val oldYaml = existing.yamlContent
+            ?: throw FlowNotFoundException(
+                "Flow '$flowId' version '$version' has no yamlContent — cannot determine version bump"
+            )
+
+        val changeType = versioning.detectChangeType(oldYaml, yamlContent)
+        val newVersion = versioning.calculateNextVersion(version, changeType)
+
+        if (repository.existsByFlowIdAndVersion(flowId, newVersion)) {
+            throw FlowAlreadyExistsException(
+                "Calculated version '$newVersion' for flow '$flowId' already exists"
+            )
         }
-        return repository.save(existing).toSummary()
+
+        val updatedYaml = versioning.updateVersionInYaml(yamlContent, newVersion)
+        val now = LocalDateTime.now()
+        val newDoc = repository.save(
+            FlowDocument(
+                flowId = flowId,
+                version = newVersion,
+                description = meta.description,
+                active = true,
+                yamlContent = updatedYaml,
+                createdAt = now,
+                updatedAt = now
+            )
+        )
+        return newDoc.toSummary()
     }
 
     /** GET leve — sem yamlContent. */
@@ -66,15 +96,28 @@ class FlowDocumentService(
             ?: throw FlowNotFoundException("Flow '$flowId' version '$version' not found")
         ).toSummary()
 
-    /** Listagem paginada — sem yamlContent. */
+    /** Listagem paginada — somente workflows ativos, sem yamlContent. */
     fun listAll(pageable: Pageable): Page<FlowSummaryDto> =
-        repository.findAll(pageable).map { it.toSummary() }
+        repository.findAllByActiveTrue(pageable).map { it.toSummary() }
+
+    /**
+     * Histórico de versões de um flow específico — sem yamlContent.
+     * [status] aceita "active", "inactive" ou null (todas as versões).
+     */
+    fun listVersions(flowId: String, status: String?): List<FlowSummaryDto> {
+        val sort = Sort.by(Sort.Direction.ASC, "version")
+        val docs = when (status) {
+            "active"   -> repository.findAllByFlowIdAndActive(flowId, true, sort)
+            "inactive" -> repository.findAllByFlowIdAndActive(flowId, false, sort)
+            else       -> repository.findAllByFlowId(flowId, sort)
+        }
+        return docs.map { it.toSummary() }
+    }
 
     /** Lista de ativos para o orquestrador — sem yamlContent. */
     fun listActive(): List<FlowSummaryDto> = repository.findByActiveTrue().map { it.toSummary() }
 
     fun deactivate(flowId: String, version: String) {
-        // WithYaml para preservar yamlContent ao re-salvar (vide comentário em update).
         val doc = repository.findByFlowIdAndVersionWithYaml(flowId, version)
             ?: throw FlowNotFoundException("Flow '$flowId' version '$version' not found")
         if (!doc.active) return
