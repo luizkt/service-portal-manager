@@ -25,7 +25,7 @@ import java.net.URI
  *
  * Acesso (aplicado pelo BFF via @PreAuthorize ao proxy):
  *   - ADMIN (it)      : CRUD completo
- *   - RULES (bizop)   : leitura apenas
+ *   - RULES (bizop)   : CRUD completo
  *   - WORKFLOWS (workop): sem acesso
  */
 @RestController
