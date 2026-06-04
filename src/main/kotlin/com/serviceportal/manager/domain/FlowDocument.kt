@@ -32,6 +32,15 @@ data class FlowDocument(
     /** YAML original recebido na criação/atualização. */
     var yamlContent: String? = null,
 
+    /** Referência ao contract utilizado por este workflow (id + version). */
+    var contract: ResourceRef? = null,
+
+    /** Referências às integrations utilizadas por este workflow (id + version de cada uma). */
+    var integrationRefs: List<ResourceRef> = emptyList(),
+
+    /** Referências às validations utilizadas por este workflow (id + version de cada uma). */
+    var validationRefs: List<ResourceRef> = emptyList(),
+
     var createdAt: LocalDateTime = LocalDateTime.now(),
 
     var updatedAt: LocalDateTime = LocalDateTime.now()

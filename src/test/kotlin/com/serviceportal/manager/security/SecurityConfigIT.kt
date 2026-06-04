@@ -3,7 +3,10 @@ package com.serviceportal.manager.security
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import com.serviceportal.manager.dto.LoginRequest
+import com.serviceportal.manager.repository.ContractDocumentRepository
 import com.serviceportal.manager.repository.FlowDocumentRepository
+import com.serviceportal.manager.repository.IntegrationDocumentRepository
+import com.serviceportal.manager.repository.ValidationDocumentRepository
 import io.mockk.every
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -39,9 +42,11 @@ class SecurityConfigIT {
     @Autowired private lateinit var jwtService: JwtService
     @Autowired private lateinit var jackson: ObjectMapper
 
-    // Repositório mockado — não precisamos de Mongo real para validar a security
-    @MockkBean(relaxed = true)
-    private lateinit var repo: FlowDocumentRepository
+    // Repositórios mockados — não precisamos de Mongo real para validar a security
+    @MockkBean(relaxed = true) private lateinit var repo: FlowDocumentRepository
+    @MockkBean(relaxed = true) private lateinit var integrationRepo: IntegrationDocumentRepository
+    @MockkBean(relaxed = true) private lateinit var contractRepo: ContractDocumentRepository
+    @MockkBean(relaxed = true) private lateinit var validationRepo: ValidationDocumentRepository
 
     @Test @DisplayName("/manager/flows without token -> 401")
     fun withoutToken() {
