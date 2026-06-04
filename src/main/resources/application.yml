@@ -26,6 +26,11 @@ manager:
       username: ${MANAGER_ADMIN_USERNAME:admin}
       password: ${MANAGER_ADMIN_PASSWORD:admin}
 
+orchestrator:
+  url: ${ORCHESTRATOR_URL:http://localhost:8080}
+  admin-username: ${ORCHESTRATOR_ADMIN_USERNAME:admin}
+  admin-password: ${ORCHESTRATOR_ADMIN_PASSWORD:admin}
+
 management:
   endpoints:
     web:

@@ -14,6 +14,11 @@ manager:
       username: ${MANAGER_ADMIN_USERNAME:admin}
       password: ${MANAGER_ADMIN_PASSWORD:admin}
 
+orchestrator:
+  url: ${ORCHESTRATOR_URL:http://orchestrator:8080}
+  admin-username: ${ORCHESTRATOR_ADMIN_USERNAME:admin}
+  admin-password: ${ORCHESTRATOR_ADMIN_PASSWORD:admin}
+
 logging:
   level:
     root: INFO

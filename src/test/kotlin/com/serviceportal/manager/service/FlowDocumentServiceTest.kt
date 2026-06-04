@@ -1,5 +1,6 @@
 package com.serviceportal.manager.service
 
+import com.serviceportal.manager.client.OrchestratorCacheClient
 import com.serviceportal.manager.domain.FlowDocument
 import com.serviceportal.manager.exception.FlowAlreadyExistsException
 import com.serviceportal.manager.exception.FlowNotFoundException
@@ -22,7 +23,8 @@ class FlowDocumentServiceTest {
     private val repo: FlowDocumentRepository = mockk()
     private val validator = YamlValidationService()
     private val versioning = VersioningService()
-    private val service = FlowDocumentService(repo, validator, versioning)
+    private val cacheClient: OrchestratorCacheClient = mockk(relaxed = true)
+    private val service = FlowDocumentService(repo, validator, versioning, cacheClient)
 
     private val baseYaml = """
         flow:
@@ -126,6 +128,8 @@ class FlowDocumentServiceTest {
         assertThat(savedSlot.captured.yamlContent).contains("1.0.1")
         // versão antiga não foi tocada
         assertThat(existing.active).isTrue()
+        // cache do orquestrador invalidado para a versão alvo do PUT
+        verify(exactly = 1) { cacheClient.evictWorkflow("create-order-v1", "1.0.0") }
     }
 
     @Test @DisplayName("update (MAJOR bump): keeps old version active and creates new 2.0.0")

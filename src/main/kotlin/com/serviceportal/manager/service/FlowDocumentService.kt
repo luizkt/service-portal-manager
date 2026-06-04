@@ -1,5 +1,6 @@
 package com.serviceportal.manager.service
 
+import com.serviceportal.manager.client.OrchestratorCacheClient
 import com.serviceportal.manager.domain.FlowDocument
 import com.serviceportal.manager.dto.FlowSummaryDto
 import com.serviceportal.manager.exception.FlowAlreadyExistsException
@@ -16,7 +17,8 @@ import java.time.LocalDateTime
 class FlowDocumentService(
     private val repository: FlowDocumentRepository,
     private val yamlValidator: YamlValidationService,
-    private val versioning: VersioningService
+    private val versioning: VersioningService,
+    private val orchestratorCacheClient: OrchestratorCacheClient
 ) {
 
     fun create(yamlContent: String): FlowSummaryDto {
@@ -87,6 +89,9 @@ class FlowDocumentService(
                 updatedAt = now
             )
         )
+        // Invalida a versão alvo do PUT no cache do orquestrador (versão antiga
+        // foi superada pela nova versão semântica recém-criada).
+        orchestratorCacheClient.evictWorkflow(flowId, version)
         return newDoc.toSummary()
     }
 
@@ -124,6 +129,7 @@ class FlowDocumentService(
         doc.active = false
         doc.updatedAt = LocalDateTime.now()
         repository.save(doc)
+        orchestratorCacheClient.evictWorkflow(flowId, version)
     }
 
     fun getYaml(flowId: String, version: String): String {

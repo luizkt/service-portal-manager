@@ -77,12 +77,14 @@ tasks.named<BootJar>("bootJar") {
 }
 
 // JaCoCo: gate ≥ 95% de cobertura de instruções no código de aplicação.
-// Excluímos a classe ManagerApplication (apenas o `main`) e DTOs/exceptions
-// que são meros holders sem lógica relevante.
+// Excluímos a classe ManagerApplication (apenas o `main`), DTOs/exceptions e as
+// data classes de domínio (@Document) — meros holders sem lógica de negócio; o
+// que o JaCoCo contabiliza neles é equals/hashCode/copy/componentN gerados.
 val coverageExclusions = listOf(
-    "com/serviceportal/manager/ManagerApplication.class",
+    "com/serviceportal/manager/ManagerApplication*",
     "com/serviceportal/manager/dto/**",
-    "com/serviceportal/manager/exception/**"
+    "com/serviceportal/manager/exception/**",
+    "com/serviceportal/manager/domain/**"
 )
 
 tasks.named<JacocoReport>("jacocoTestReport") {
