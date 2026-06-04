@@ -5,9 +5,10 @@
 # Sobe APENAS o MongoDB que o manager precisa. Roda o manager localmente via
 # `./gradlew bootRun` — o Spring conecta em mongodb://localhost:27017.
 #
-# O init script (../generic-orchestrator/mongodb-workflows) cria a database
-# `generic-orchestrator`, a collection `workflows` e o índice composto único
-# em (flowId, version) — mesmo schema usado pela stack completa.
+# O init script (mongodb-manager/) cria a database `service-portal-manager`,
+# as collections `workflows`, `integrations`, `contracts` e `validations`, cada
+# uma com índice composto único em (id, version) — mesmo schema da stack completa.
+# Também popula dados de exemplo (workflow create-order-v1 + recursos referenciados).
 #
 # Uso:
 #   docker compose up -d
@@ -27,8 +28,8 @@ services:
       timeout: 5s
       retries: 5
     environment:
-      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-generic-orchestrator}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-service-portal-manager}
     volumes:
-      - ../generic-orchestrator/mongodb-workflows:/docker-entrypoint-initdb.d:ro
+      - ./mongodb-manager:/docker-entrypoint-initdb.d:ro
     ports:
       - "27017:27017"

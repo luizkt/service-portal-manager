@@ -3,8 +3,8 @@ spring:
     name: service-portal-manager
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/generic-orchestrator}
-      database: ${MONGODB_DATABASE:generic-orchestrator}
+      uri: ${MONGODB_URI:mongodb://localhost:27017/service-portal-manager}
+      database: ${MONGODB_DATABASE:service-portal-manager}
     web:
       pageable:
         default-page-size: 20

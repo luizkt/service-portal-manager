@@ -1,8 +1,8 @@
 spring:
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://mongodb:27017/generic-orchestrator}
-      database: ${MONGODB_DATABASE:generic-orchestrator}
+      uri: ${MONGODB_URI:mongodb://mongodb:27017/service-portal-manager}
+      database: ${MONGODB_DATABASE:service-portal-manager}
 
 manager:
   security:

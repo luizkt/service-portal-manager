@@ -30,7 +30,7 @@ A migração das integrações do BFF e do orquestrador acontece em tarefas subs
 | Java toolchain | 21 LTS |
 | Spring Boot | 3.4.5 LTS |
 | Gradle | Kotlin DSL |
-| MongoDB | 7 (compartilhada com `generic-orchestrator` no DB `generic-orchestrator`) |
+| MongoDB | 7 (DB `service-portal-manager` — dono das collections de workflows e recursos) |
 | Segurança | Spring Security + JWT HS512 (jjwt 0.12.6) |
 | YAML | jackson-dataformat-yaml |
 | Testes | JUnit 5 + mockk + springmockk |
@@ -93,8 +93,8 @@ src/test/kotlin/com/serviceportal/manager/
 spring:
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/generic-orchestrator}
-      database: ${MONGODB_DATABASE:generic-orchestrator}
+      uri: ${MONGODB_URI:mongodb://localhost:27017/service-portal-manager}
+      database: ${MONGODB_DATABASE:service-portal-manager}
 
 server:
   port: ${SERVER_PORT:8082}
@@ -115,15 +115,15 @@ manager:
 | Variável | Descrição | Default |
 |---|---|---|
 | `SERVER_PORT` | Porta do Manager | `8082` |
-| `MONGODB_URI` | URI do MongoDB | `mongodb://localhost:27017/generic-orchestrator` |
-| `MONGODB_DATABASE` | Database do MongoDB | `generic-orchestrator` |
+| `MONGODB_URI` | URI do MongoDB | `mongodb://localhost:27017/service-portal-manager` |
+| `MONGODB_DATABASE` | Database do MongoDB | `service-portal-manager` |
 | `JWT_SECRET` | Chave HS512 (≥ 64 chars) | placeholder de dev |
 | `JWT_EXPIRATION` | TTL do token em segundos | `3600` |
 | `JWT_ISSUER` | Claim `iss` dos tokens emitidos | `service-portal-manager` |
 | `MANAGER_ADMIN_USERNAME` | Usuário admin | `admin` |
 | `MANAGER_ADMIN_PASSWORD` | Senha admin | `admin` |
 
-> `MONGODB_DATABASE` aponta intencionalmente para a mesma database (`generic-orchestrator`) e collection (`workflows`) usadas pelo orquestrador. Documentos criados via Manager têm o campo adicional `yamlContent`.
+> O Manager é o dono do database `service-portal-manager` e da collection `workflows`. O orquestrador não acessa o MongoDB diretamente — consome os workflows via API REST do Manager. Documentos têm o campo `yamlContent` com o YAML cru.
 
 ---
 
@@ -257,7 +257,7 @@ curl -s http://localhost:8082/manager/workflows/create-order-v1/1.0.0/yaml \
 
 ### `workflows` (MongoDB)
 
-Collection compartilhada com o `generic-orchestrator`. Documentos criados via Manager têm o campo `yamlContent`:
+Collection do database `service-portal-manager`, da qual o Manager é o dono. Documentos têm o campo `yamlContent`:
 
 ```js
 {
@@ -284,7 +284,7 @@ Collection compartilhada com o `generic-orchestrator`. Documentos criados via Ma
 | `createdAt` / `updatedAt` | ISODate | Manager | timestamps do serviço |
 | `_class` | String | Spring Data Mongo | nome qualificado da classe |
 
-Índice composto único em `flowId` + `version` declarado em [`mongodb-workflows/init-mongo.js`](../generic-orchestrator/mongodb-workflows/init-mongo.js) — coexiste com docs do orquestrador. O Manager **não** versiona automaticamente — quem decide a versão é quem submete o YAML; tentativa de POST com `{flowId, version}` existente devolve 409.
+Índice composto único em `flowId` + `version` declarado em [`mongodb-manager/init-mongo.js`](mongodb-manager/init-mongo.js), que também cria as collections `integrations`, `contracts` e `validations` e popula dados de exemplo. O Manager **não** versiona automaticamente workflows — quem decide a versão é quem submete o YAML; tentativa de POST com `{flowId, version}` existente devolve 409.
 
 > ⚠️ **Save sobrescreve o doc inteiro.** Para evitar zerar `yamlContent` em mutações (update/deactivate), o serviço carrega o doc completo via `findByFlowIdAndVersaoWithYaml(...)` antes de salvar. As listas (`findAll(Pageable)`, `findByAtivoTrue`) e o `get` simples usam projection sem `yamlContent` — operações somente-leitura por design.
 
@@ -346,7 +346,7 @@ Distribuição:
 ```bash
 docker build -t service-portal-manager .
 docker run --rm -p 8082:8082 \
-  -e MONGODB_URI=mongodb://mongo:27017/generic-orchestrator \
+  -e MONGODB_URI=mongodb://mongo:27017/service-portal-manager \
   -e JWT_SECRET=... \
   service-portal-manager
 ```

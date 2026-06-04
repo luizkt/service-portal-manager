@@ -57,7 +57,7 @@ O parse profundo do YAML (validação de integrações, contrato, etc.) é respo
 
 ## Schema do documento MongoDB
 
-Collection: `workflows` | Database: `generic-orchestrator`
+Collection: `workflows` | Database: `service-portal-manager`
 
 ```json
 {
@@ -73,9 +73,22 @@ Collection: `workflows` | Database: `generic-orchestrator`
 }
 ```
 
-**Índice composto único** em `flowId` + `version` criado pelo script `mongodb-workflows/init-mongo.js` na raiz do repositório. O `auto-index-creation` do Spring Data está desabilitado (padrão do Spring Boot 3) — o init-mongo.js é a fonte de verdade do índice.
+**Índice composto único** em `flowId` + `version` criado pelo script `mongodb-manager/init-mongo.js` (neste repositório). O `auto-index-creation` do Spring Data está desabilitado (padrão do Spring Boot 3) — o init-mongo.js é a fonte de verdade do índice.
 
 **Atenção:** `yamlContent` é excluído por projeção MongoDB nas queries de listagem e `get` para economizar banda. Apenas `findByFlowIdAndVersionWithYaml` traz o campo completo — use-o sempre que for fazer `repository.save()` após mutação, caso contrário o save sobrescreve o documento inteiro zerando `yamlContent`.
+
+---
+
+## Inicialização do MongoDB
+
+O arquivo `mongodb-manager/init-mongo.js` cria o database `service-portal-manager`
+com as collections `workflows`, `integrations`, `contracts` e `validations`, cada
+uma com índice único composto `(id, version)`. Também popula **dados de exemplo**
+(workflow `create-order-v1` + contract/integrations/validations referenciados).
+
+Este script é montado em `/docker-entrypoint-initdb.d/` no container MongoDB e
+executado automaticamente na primeira inicialização (volume vazio). Para reexecutá-lo
+após mudanças, é necessário destruir o volume: `docker compose down -v && docker compose up -d`.
 
 ---
 
@@ -183,7 +196,7 @@ src/main/kotlin/com/serviceportal/manager/
 
 **Soft-delete.** `DELETE` não remove o documento — seta `active = false` e é idempotente. O índice de unicidade permanece intacto: criar um workflow com o mesmo `flowId`+`version` após o delete resulta em 409.
 
-**Índice de unicidade gerenciado externamente.** Não há `@CompoundIndexes` no `FlowDocument` — o Spring Boot 3 não cria índices automaticamente por padrão. O índice composto único (`flowId` + `version`) é criado pelo `mongodb-workflows/init-mongo.js` na raiz do repositório.
+**Índice de unicidade gerenciado externamente.** Não há `@CompoundIndexes` no `FlowDocument` — o Spring Boot 3 não cria índices automaticamente por padrão. O índice composto único (`flowId` + `version`) é criado pelo `mongodb-manager/init-mongo.js` (neste repositório).
 
 **Validação leve no Manager.** `YamlValidationService` extrai apenas os metadados mínimos para persistência. Não valida integrações, templates, contratos nem tipos de campo — isso fica no orquestrador.
 
@@ -195,8 +208,8 @@ src/main/kotlin/com/serviceportal/manager/
 |---|---|---|
 | `SERVER_PORT` | `8082` | Porta do servidor |
 | `SPRING_PROFILES_ACTIVE` | `` | Perfil Spring ativo |
-| `MONGODB_URI` | `mongodb://localhost:27017/generic-orchestrator` | URI de conexão com o MongoDB |
-| `MONGODB_DATABASE` | `generic-orchestrator` | Nome do banco de dados |
+| `MONGODB_URI` | `mongodb://localhost:27017/service-portal-manager` | URI de conexão com o MongoDB |
+| `MONGODB_DATABASE` | `service-portal-manager` | Nome do banco de dados |
 | `JWT_SECRET` | (dev secret) | Segredo HS512 — **trocar em produção** |
 | `JWT_EXPIRATION` | `3600` | Expiração do JWT em segundos |
 | `JWT_ISSUER` | `service-portal-manager` | Claim `iss` do token gerado |
