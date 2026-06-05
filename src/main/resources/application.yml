@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: service-portal-manager
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/service-portal-manager}
+      database: ${MONGODB_DATABASE:service-portal-manager}
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 100
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${SERVER_PORT:8082}
+
+manager:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:CHANGE_ME_PLEASE_THIS_IS_A_DEV_ONLY_SECRET_AT_LEAST_64_CHARS_LONG_FOR_HS512}
+      expiration-seconds: ${JWT_EXPIRATION:3600}
+      issuer: ${JWT_ISSUER:service-portal-manager}
+    admin:
+      username: ${MANAGER_ADMIN_USERNAME:admin}
+      password: ${MANAGER_ADMIN_PASSWORD:admin}
+
+orchestrator:
+  url: ${ORCHESTRATOR_URL:http://localhost:8080}
+  admin-username: ${ORCHESTRATOR_ADMIN_USERNAME:admin}
+  admin-password: ${ORCHESTRATOR_ADMIN_PASSWORD:admin}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.serviceportal.manager: DEBUG
