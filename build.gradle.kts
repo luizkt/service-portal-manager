@@ -23,8 +23,10 @@ java {
 repositories { mavenCentral() }
 
 extra["jjwtVersion"] = "0.12.6"
+extra["sbaVersion"] = "3.4.0"
 
 dependencies {
+    implementation("de.codecentric:spring-boot-admin-starter-client:${property("sbaVersion")}")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("org.springframework.boot:spring-boot-starter-validation")

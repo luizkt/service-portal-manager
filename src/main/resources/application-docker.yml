@@ -1,4 +1,10 @@
 spring:
+  boot:
+    admin:
+      client:
+        url: ${SPRING_BOOT_ADMIN_URL:http://spring-boot-admin:8080}
+        instance:
+          service-base-url: http://manager:${SERVER_PORT:8082}
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://mongodb:27017/service-portal-manager}

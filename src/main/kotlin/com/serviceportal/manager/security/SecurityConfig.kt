@@ -43,7 +43,7 @@ class SecurityConfig(private val jwtAuthFilter: JwtAuthenticationFilter) {
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
-                    .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                    .requestMatchers("/actuator/**").permitAll()
                     .anyRequest().authenticated()
             }
             // 401 (e não 403) para chamadas sem token — semântica HTTP correta
