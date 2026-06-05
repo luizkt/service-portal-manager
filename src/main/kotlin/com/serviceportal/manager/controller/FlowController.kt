@@ -1,8 +1,30 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.controller
 
 import com.serviceportal.manager.dto.FlowSummaryDto
 import com.serviceportal.manager.service.FlowDocumentService
-import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -37,15 +59,17 @@ import java.net.URI
 @RestController
 @RequestMapping("/manager/flows")
 class FlowController(private val service: FlowDocumentService) {
-
-    @PostMapping(consumes = [
-        MediaType.TEXT_PLAIN_VALUE,
-        "application/x-yaml",
-        "text/yaml",
-        MediaType.APPLICATION_JSON_VALUE
-    ])
-    fun create(@RequestBody yaml: String): ResponseEntity<FlowSummaryDto> =
-        ResponseEntity.status(HttpStatus.CREATED).body(service.create(yaml))
+    @PostMapping(
+        consumes = [
+            MediaType.TEXT_PLAIN_VALUE,
+            "application/x-yaml",
+            "text/yaml",
+            MediaType.APPLICATION_JSON_VALUE,
+        ],
+    )
+    fun create(
+        @RequestBody yaml: String,
+    ): ResponseEntity<FlowSummaryDto> = ResponseEntity.status(HttpStatus.CREATED).body(service.create(yaml))
 
     /**
      * Lista paginada de fluxos. Aceita `status=active` para filtrar.
@@ -57,9 +81,9 @@ class FlowController(private val service: FlowDocumentService) {
         @PageableDefault(
             size = 20,
             sort = ["flowId", "version"],
-            direction = Sort.Direction.ASC
+            direction = Sort.Direction.ASC,
         ) pageable: Pageable,
-        @RequestParam(required = false) status: String?
+        @RequestParam(required = false) status: String?,
     ): ResponseEntity<Any> {
         // Quando `status=active` é solicitado, devolvemos a lista de ativos
         // (sem paginação — o orquestrador consome assim no warm-up).
@@ -78,21 +102,20 @@ class FlowController(private val service: FlowDocumentService) {
     @GetMapping("/{flowId}/versions")
     fun listVersions(
         @PathVariable flowId: String,
-        @RequestParam(required = false) status: String?
-    ): ResponseEntity<List<FlowSummaryDto>> =
-        ResponseEntity.ok(service.listVersions(flowId, status))
+        @RequestParam(required = false) status: String?,
+    ): ResponseEntity<List<FlowSummaryDto>> = ResponseEntity.ok(service.listVersions(flowId, status))
 
     @GetMapping("/{flowId}/versions/{version}")
     fun get(
         @PathVariable flowId: String,
-        @PathVariable version: String
+        @PathVariable version: String,
     ): ResponseEntity<FlowSummaryDto> = ResponseEntity.ok(service.get(flowId, version))
 
     /** YAML cru — sub-recurso da versão. Substitui o antigo `/manager/workflows/{id}/{ver}/yaml`. */
     @GetMapping("/{flowId}/versions/{version}/yaml", produces = [MediaType.TEXT_PLAIN_VALUE])
     fun getYaml(
         @PathVariable flowId: String,
-        @PathVariable version: String
+        @PathVariable version: String,
     ): ResponseEntity<String> {
         val yaml = service.getYaml(flowId, version)
         return ResponseEntity.ok()
@@ -109,16 +132,19 @@ class FlowController(private val service: FlowDocumentService) {
      * Retorna 201 com cabeçalho `Location` apontando para a nova versão criada.
      * A versão antiga é desativada automaticamente.
      */
-    @PutMapping("/{flowId}/versions/{version}", consumes = [
-        MediaType.TEXT_PLAIN_VALUE,
-        "application/x-yaml",
-        "text/yaml",
-        MediaType.APPLICATION_JSON_VALUE
-    ])
+    @PutMapping(
+        "/{flowId}/versions/{version}",
+        consumes = [
+            MediaType.TEXT_PLAIN_VALUE,
+            "application/x-yaml",
+            "text/yaml",
+            MediaType.APPLICATION_JSON_VALUE,
+        ],
+    )
     fun update(
         @PathVariable flowId: String,
         @PathVariable version: String,
-        @RequestBody yaml: String
+        @RequestBody yaml: String,
     ): ResponseEntity<FlowSummaryDto> {
         val result = service.update(flowId, version, yaml)
         val location = URI.create("/manager/flows/$flowId/versions/${result.version}")
@@ -128,7 +154,7 @@ class FlowController(private val service: FlowDocumentService) {
     @DeleteMapping("/{flowId}/versions/{version}")
     fun delete(
         @PathVariable flowId: String,
-        @PathVariable version: String
+        @PathVariable version: String,
     ): ResponseEntity<Void> {
         service.deactivate(flowId, version)
         return ResponseEntity.noContent().build()

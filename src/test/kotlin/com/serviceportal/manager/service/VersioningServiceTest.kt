@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.service
 
 import org.assertj.core.api.Assertions.assertThat
@@ -5,11 +28,11 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 
 class VersioningServiceTest {
-
     private val service = VersioningService()
 
     // YAML base — contrato com um campo, integração int1, descrição "Old"
-    private val yamlBase = """
+    private val yamlBase =
+        """
         flow:
           id: "create-order"
           version: "1.0.0"
@@ -22,10 +45,11 @@ class VersioningServiceTest {
             - id: int1
               order: 1
               type: HTTP
-    """.trimIndent()
+        """.trimIndent()
 
     // Somente description mudou → PATCH
-    private val yamlDescriptionChanged = """
+    private val yamlDescriptionChanged =
+        """
         flow:
           id: "create-order"
           version: "1.0.0"
@@ -38,10 +62,11 @@ class VersioningServiceTest {
             - id: int1
               order: 1
               type: HTTP
-    """.trimIndent()
+        """.trimIndent()
 
     // integrations mudou (novo id de integração) → MINOR
-    private val yamlIntegrationsChanged = """
+    private val yamlIntegrationsChanged =
+        """
         flow:
           id: "create-order"
           version: "1.0.0"
@@ -54,10 +79,11 @@ class VersioningServiceTest {
             - id: int2
               order: 1
               type: HTTP
-    """.trimIndent()
+        """.trimIndent()
 
     // contract mudou (novo campo) → MAJOR
-    private val yamlContractChanged = """
+    private val yamlContractChanged =
+        """
         flow:
           id: "create-order"
           version: "1.0.0"
@@ -71,10 +97,11 @@ class VersioningServiceTest {
             - id: int1
               order: 1
               type: HTTP
-    """.trimIndent()
+        """.trimIndent()
 
     // contract E integrations mudaram → MAJOR (maior precedência)
-    private val yamlBothChanged = """
+    private val yamlBothChanged =
+        """
         flow:
           id: "create-order"
           version: "1.0.0"
@@ -88,61 +115,71 @@ class VersioningServiceTest {
             - id: int2
               order: 1
               type: HTTP
-    """.trimIndent()
+        """.trimIndent()
 
-    @Test @DisplayName("contract change → MAJOR")
+    @Test
+    @DisplayName("contract change → MAJOR")
     fun detectsMajor() {
         assertThat(service.detectChangeType(yamlBase, yamlContractChanged))
             .isEqualTo(VersioningService.ChangeType.MAJOR)
     }
 
-    @Test @DisplayName("integrations change → MINOR")
+    @Test
+    @DisplayName("integrations change → MINOR")
     fun detectsMinor() {
         assertThat(service.detectChangeType(yamlBase, yamlIntegrationsChanged))
             .isEqualTo(VersioningService.ChangeType.MINOR)
     }
 
-    @Test @DisplayName("only description change → PATCH")
+    @Test
+    @DisplayName("only description change → PATCH")
     fun detectsPatch() {
         assertThat(service.detectChangeType(yamlBase, yamlDescriptionChanged))
             .isEqualTo(VersioningService.ChangeType.PATCH)
     }
 
-    @Test @DisplayName("no change → PATCH")
+    @Test
+    @DisplayName("no change → PATCH")
     fun detectsPatchWhenNothingChanged() {
         assertThat(service.detectChangeType(yamlBase, yamlBase))
             .isEqualTo(VersioningService.ChangeType.PATCH)
     }
 
-    @Test @DisplayName("contract + integrations change → MAJOR (highest precedence wins)")
+    @Test
+    @DisplayName("contract + integrations change → MAJOR (highest precedence wins)")
     fun majorPrecedenceOverMinor() {
         assertThat(service.detectChangeType(yamlBase, yamlBothChanged))
             .isEqualTo(VersioningService.ChangeType.MAJOR)
     }
 
-    @Test @DisplayName("MAJOR bump resets minor and patch")
+    @Test
+    @DisplayName("MAJOR bump resets minor and patch")
     fun calculateMajor() {
         assertThat(service.calculateNextVersion("1.2.3", VersioningService.ChangeType.MAJOR)).isEqualTo("2.0.0")
     }
 
-    @Test @DisplayName("MINOR bump resets patch")
+    @Test
+    @DisplayName("MINOR bump resets patch")
     fun calculateMinor() {
         assertThat(service.calculateNextVersion("1.2.3", VersioningService.ChangeType.MINOR)).isEqualTo("1.3.0")
     }
 
-    @Test @DisplayName("PATCH bump increments patch only")
+    @Test
+    @DisplayName("PATCH bump increments patch only")
     fun calculatePatch() {
         assertThat(service.calculateNextVersion("1.2.3", VersioningService.ChangeType.PATCH)).isEqualTo("1.2.4")
     }
 
-    @Test @DisplayName("starts from 1.0.0 correctly")
+    @Test
+    @DisplayName("starts from 1.0.0 correctly")
     fun calculateFromInitial() {
         assertThat(service.calculateNextVersion("1.0.0", VersioningService.ChangeType.MAJOR)).isEqualTo("2.0.0")
         assertThat(service.calculateNextVersion("1.0.0", VersioningService.ChangeType.MINOR)).isEqualTo("1.1.0")
         assertThat(service.calculateNextVersion("1.0.0", VersioningService.ChangeType.PATCH)).isEqualTo("1.0.1")
     }
 
-    @Test @DisplayName("updateVersionInYaml replaces flow.version field")
+    @Test
+    @DisplayName("updateVersionInYaml replaces flow.version field")
     fun updatesVersionInYaml() {
         val updated = service.updateVersionInYaml(yamlBase, "2.0.0")
         assertThat(updated).contains("2.0.0")

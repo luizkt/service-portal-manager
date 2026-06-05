@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -14,14 +37,13 @@ import org.springframework.stereotype.Service
  */
 @Service
 class YamlValidationService {
-
     private val mapper = ObjectMapper(YAMLFactory())
 
     data class FlowMetadata(
         val flowId: String,
         val version: String,
         val description: String?,
-        val active: Boolean
+        val active: Boolean,
     )
 
     fun extractMetadata(yamlContent: String): FlowMetadata {
@@ -29,22 +51,26 @@ class YamlValidationService {
             throw InvalidFlowDefinitionException("Empty YAML")
         }
 
-        val root: Map<String, Any?> = try {
-            @Suppress("UNCHECKED_CAST")
-            mapper.readValue(yamlContent, Map::class.java) as Map<String, Any?>
-        } catch (e: Exception) {
-            throw InvalidFlowDefinitionException("Invalid YAML: ${e.message}")
-        }
+        val root: Map<String, Any?> =
+            try {
+                @Suppress("UNCHECKED_CAST")
+                mapper.readValue(yamlContent, Map::class.java) as Map<String, Any?>
+            } catch (e: Exception) {
+                throw InvalidFlowDefinitionException("Invalid YAML: ${e.message}")
+            }
 
         @Suppress("UNCHECKED_CAST")
-        val flow = root["flow"] as? Map<String, Any?>
-            ?: throw InvalidFlowDefinitionException("YAML must contain root key 'flow'")
+        val flow =
+            root["flow"] as? Map<String, Any?>
+                ?: throw InvalidFlowDefinitionException("YAML must contain root key 'flow'")
 
-        val flowId = (flow["id"] as? String)?.takeIf { it.isNotBlank() }
-            ?: throw InvalidFlowDefinitionException("Field 'flow.id' is required")
+        val flowId =
+            (flow["id"] as? String)?.takeIf { it.isNotBlank() }
+                ?: throw InvalidFlowDefinitionException("Field 'flow.id' is required")
 
-        val version = (flow["version"] as? String)?.takeIf { it.isNotBlank() }
-            ?: throw InvalidFlowDefinitionException("Field 'flow.version' is required")
+        val version =
+            (flow["version"] as? String)?.takeIf { it.isNotBlank() }
+                ?: throw InvalidFlowDefinitionException("Field 'flow.version' is required")
 
         if (flow["contract"] == null) {
             throw InvalidFlowDefinitionException("Field 'flow.contract' is required")

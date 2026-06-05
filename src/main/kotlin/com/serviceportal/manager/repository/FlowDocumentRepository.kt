@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.repository
 
 import com.serviceportal.manager.domain.FlowDocument
@@ -28,7 +51,6 @@ import org.springframework.stereotype.Repository
  */
 @Repository
 interface FlowDocumentRepository : MongoRepository<FlowDocument, String> {
-
     /** Lista paginada — exclui yamlContent. */
     @Query(value = "{}", fields = "{ 'yamlContent': 0 }")
     override fun findAll(pageable: Pageable): Page<FlowDocument>
@@ -43,19 +65,35 @@ interface FlowDocumentRepository : MongoRepository<FlowDocument, String> {
 
     /** Get leve (sem yamlContent) — usado pelo `GET /manager/flows/{id}/versions/{v}`. */
     @Query(value = "{ 'flowId': ?0, 'version': ?1 }", fields = "{ 'yamlContent': 0 }")
-    fun findByFlowIdAndVersion(flowId: String, version: String): FlowDocument?
+    fun findByFlowIdAndVersion(
+        flowId: String,
+        version: String,
+    ): FlowDocument?
 
     /** Get completo — usado pelo `GET /yaml` e por mutações que precisam preservar yamlContent. */
     @Query(value = "{ 'flowId': ?0, 'version': ?1 }")
-    fun findByFlowIdAndVersionWithYaml(flowId: String, version: String): FlowDocument?
+    fun findByFlowIdAndVersionWithYaml(
+        flowId: String,
+        version: String,
+    ): FlowDocument?
 
-    fun existsByFlowIdAndVersion(flowId: String, version: String): Boolean
+    fun existsByFlowIdAndVersion(
+        flowId: String,
+        version: String,
+    ): Boolean
 
     /** Todas as versões de um flow (ativas + inativas) — exclui yamlContent. */
     @Query(value = "{ 'flowId': ?0 }", fields = "{ 'yamlContent': 0 }")
-    fun findAllByFlowId(flowId: String, sort: Sort): List<FlowDocument>
+    fun findAllByFlowId(
+        flowId: String,
+        sort: Sort,
+    ): List<FlowDocument>
 
     /** Versões de um flow filtradas por active — exclui yamlContent. */
     @Query(value = "{ 'flowId': ?0, 'active': ?1 }", fields = "{ 'yamlContent': 0 }")
-    fun findAllByFlowIdAndActive(flowId: String, active: Boolean, sort: Sort): List<FlowDocument>
+    fun findAllByFlowIdAndActive(
+        flowId: String,
+        active: Boolean,
+        sort: Sort,
+    ): List<FlowDocument>
 }

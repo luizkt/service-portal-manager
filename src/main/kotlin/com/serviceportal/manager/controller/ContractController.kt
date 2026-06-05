@@ -1,9 +1,31 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.controller
 
 import com.serviceportal.manager.dto.ContractDto
 import com.serviceportal.manager.dto.ContractRequest
 import com.serviceportal.manager.service.ContractService
-import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -31,16 +53,16 @@ import java.net.URI
 @RestController
 @RequestMapping("/manager/contracts")
 class ContractController(private val service: ContractService) {
-
     @PostMapping
-    fun create(@RequestBody request: ContractRequest): ResponseEntity<ContractDto> =
-        ResponseEntity.status(HttpStatus.CREATED).body(service.create(request))
+    fun create(
+        @RequestBody request: ContractRequest,
+    ): ResponseEntity<ContractDto> = ResponseEntity.status(HttpStatus.CREATED).body(service.create(request))
 
     @GetMapping
     fun list(
         @PageableDefault(size = 20, sort = ["contractId", "version"], direction = Sort.Direction.ASC)
         pageable: Pageable,
-        @RequestParam(required = false) status: String?
+        @RequestParam(required = false) status: String?,
     ): ResponseEntity<Any> {
         if (status == "active") return ResponseEntity.ok<Any>(service.listActive())
         return ResponseEntity.ok<Any>(service.listAll(pageable))
@@ -49,21 +71,20 @@ class ContractController(private val service: ContractService) {
     @GetMapping("/{contractId}/versions")
     fun listVersions(
         @PathVariable contractId: String,
-        @RequestParam(required = false) status: String?
-    ): ResponseEntity<List<ContractDto>> =
-        ResponseEntity.ok(service.listVersions(contractId, status))
+        @RequestParam(required = false) status: String?,
+    ): ResponseEntity<List<ContractDto>> = ResponseEntity.ok(service.listVersions(contractId, status))
 
     @GetMapping("/{contractId}/versions/{version}")
     fun get(
         @PathVariable contractId: String,
-        @PathVariable version: Int
+        @PathVariable version: Int,
     ): ResponseEntity<ContractDto> = ResponseEntity.ok(service.get(contractId, version))
 
     @PutMapping("/{contractId}/versions/{version}")
     fun update(
         @PathVariable contractId: String,
         @PathVariable version: Int,
-        @RequestBody request: ContractRequest
+        @RequestBody request: ContractRequest,
     ): ResponseEntity<ContractDto> {
         val result = service.update(contractId, version, request)
         val location = URI.create("/manager/contracts/$contractId/versions/${result.version}")
@@ -73,7 +94,7 @@ class ContractController(private val service: ContractService) {
     @DeleteMapping("/{contractId}/versions/{version}")
     fun delete(
         @PathVariable contractId: String,
-        @PathVariable version: Int
+        @PathVariable version: Int,
     ): ResponseEntity<Void> {
         service.deactivate(contractId, version)
         return ResponseEntity.noContent().build()

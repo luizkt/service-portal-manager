@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.service
 
 import com.serviceportal.manager.domain.ContractDocument
@@ -19,17 +42,22 @@ import org.springframework.data.domain.Sort
 import java.time.LocalDateTime
 
 class ContractServiceTest {
-
     private val repository = mockk<ContractDocumentRepository>(relaxUnitFun = true)
     private val versioning = SequentialVersioningService()
     private val service = ContractService(repository, versioning)
 
     private val now = LocalDateTime.now()
     private val field = ContractField(name = "clientId", type = "STRING", required = true)
-    private val doc = ContractDocument(
-        mongoId = "id1", contractId = "ctr-1", version = 1,
-        fields = listOf(field), active = true, createdAt = now, updatedAt = now
-    )
+    private val doc =
+        ContractDocument(
+            mongoId = "id1",
+            contractId = "ctr-1",
+            version = 1,
+            fields = listOf(field),
+            active = true,
+            createdAt = now,
+            updatedAt = now,
+        )
     private val request = ContractRequest(contractId = "ctr-1", fields = listOf(field))
 
     @Test fun `create saves with version 1`() {

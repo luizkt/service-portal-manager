@@ -1,9 +1,31 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.controller
 
 import com.serviceportal.manager.dto.ValidationDto
 import com.serviceportal.manager.dto.ValidationRequest
 import com.serviceportal.manager.service.ValidationService
-import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -31,16 +53,16 @@ import java.net.URI
 @RestController
 @RequestMapping("/manager/validations")
 class ValidationController(private val service: ValidationService) {
-
     @PostMapping
-    fun create(@RequestBody request: ValidationRequest): ResponseEntity<ValidationDto> =
-        ResponseEntity.status(HttpStatus.CREATED).body(service.create(request))
+    fun create(
+        @RequestBody request: ValidationRequest,
+    ): ResponseEntity<ValidationDto> = ResponseEntity.status(HttpStatus.CREATED).body(service.create(request))
 
     @GetMapping
     fun list(
         @PageableDefault(size = 20, sort = ["validationId", "version"], direction = Sort.Direction.ASC)
         pageable: Pageable,
-        @RequestParam(required = false) status: String?
+        @RequestParam(required = false) status: String?,
     ): ResponseEntity<Any> {
         if (status == "active") return ResponseEntity.ok<Any>(service.listActive())
         return ResponseEntity.ok<Any>(service.listAll(pageable))
@@ -49,21 +71,20 @@ class ValidationController(private val service: ValidationService) {
     @GetMapping("/{validationId}/versions")
     fun listVersions(
         @PathVariable validationId: String,
-        @RequestParam(required = false) status: String?
-    ): ResponseEntity<List<ValidationDto>> =
-        ResponseEntity.ok(service.listVersions(validationId, status))
+        @RequestParam(required = false) status: String?,
+    ): ResponseEntity<List<ValidationDto>> = ResponseEntity.ok(service.listVersions(validationId, status))
 
     @GetMapping("/{validationId}/versions/{version}")
     fun get(
         @PathVariable validationId: String,
-        @PathVariable version: Int
+        @PathVariable version: Int,
     ): ResponseEntity<ValidationDto> = ResponseEntity.ok(service.get(validationId, version))
 
     @PutMapping("/{validationId}/versions/{version}")
     fun update(
         @PathVariable validationId: String,
         @PathVariable version: Int,
-        @RequestBody request: ValidationRequest
+        @RequestBody request: ValidationRequest,
     ): ResponseEntity<ValidationDto> {
         val result = service.update(validationId, version, request)
         val location = URI.create("/manager/validations/$validationId/versions/${result.version}")
@@ -73,7 +94,7 @@ class ValidationController(private val service: ValidationService) {
     @DeleteMapping("/{validationId}/versions/{version}")
     fun delete(
         @PathVariable validationId: String,
-        @PathVariable version: Int
+        @PathVariable version: Int,
     ): ResponseEntity<Void> {
         service.deactivate(validationId, version)
         return ResponseEntity.noContent().build()

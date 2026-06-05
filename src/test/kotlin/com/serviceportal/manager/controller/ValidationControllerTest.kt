@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.controller
 
 import com.serviceportal.manager.dto.ValidationDto
@@ -13,16 +36,16 @@ import org.springframework.data.domain.PageRequest
 import java.time.LocalDateTime
 
 class ValidationControllerTest {
-
     private val service: ValidationService = mockk(relaxUnitFun = true)
     private val controller = ValidationController(service)
 
-    private val dto = ValidationDto(
-        validationId = "val-1", version = 1, type = "HTTP",
-        url = "http://api/credit", method = "GET", headers = emptyMap(),
-        timeout = 5000, bodyTemplate = null, responseBody = null,
-        active = true, createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now()
-    )
+    private val dto =
+        ValidationDto(
+            validationId = "val-1", version = 1, type = "HTTP",
+            url = "http://api/credit", method = "GET", headers = emptyMap(),
+            timeout = 5000, bodyTemplate = null, responseBody = null,
+            active = true, createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now(),
+        )
     private val request = ValidationRequest(validationId = "val-1", url = "http://api/credit", method = "GET")
 
     @Test fun `POST creates and returns 201`() {

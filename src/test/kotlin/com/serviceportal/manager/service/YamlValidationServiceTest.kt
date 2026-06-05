@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.service
 
 import com.serviceportal.manager.exception.InvalidFlowDefinitionException
@@ -7,10 +30,10 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 
 class YamlValidationServiceTest {
-
     private val service = YamlValidationService()
 
-    private val validYaml = """
+    private val validYaml =
+        """
         flow:
           id: "create-order-v1"
           version: "1.0.0"
@@ -29,7 +52,8 @@ class YamlValidationServiceTest {
                 method: GET
         """.trimIndent()
 
-    @Test @DisplayName("Extracts metadata from a valid YAML")
+    @Test
+    @DisplayName("Extracts metadata from a valid YAML")
     fun valid() {
         val meta = service.extractMetadata(validYaml)
         assertThat(meta.flowId).isEqualTo("create-order-v1")
@@ -38,42 +62,49 @@ class YamlValidationServiceTest {
         assertThat(meta.active).isTrue()
     }
 
-    @Test @DisplayName("active defaults to true when missing")
+    @Test
+    @DisplayName("active defaults to true when missing")
     fun activeDefault() {
         val yaml = validYaml.replace("active: true", "")
         assertThat(service.extractMetadata(yaml).active).isTrue()
     }
 
-    @Test @DisplayName("description is optional")
+    @Test
+    @DisplayName("description is optional")
     fun descriptionOptional() {
         val yaml = validYaml.replace("description: \"Creates order\"", "")
         assertThat(service.extractMetadata(yaml).description).isNull()
     }
 
-    @Test @DisplayName("Empty YAML is rejected")
+    @Test
+    @DisplayName("Empty YAML is rejected")
     fun empty() {
         assertThatThrownBy { service.extractMetadata("   ") }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
             .hasMessageContaining("Empty")
     }
 
-    @Test @DisplayName("Malformed YAML is rejected")
+    @Test
+    @DisplayName("Malformed YAML is rejected")
     fun malformed() {
         assertThatThrownBy { service.extractMetadata(":\n  - not: [valid") }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
             .hasMessageContaining("Invalid")
     }
 
-    @Test @DisplayName("Missing 'flow' root key is rejected")
+    @Test
+    @DisplayName("Missing 'flow' root key is rejected")
     fun missingFlow() {
         assertThatThrownBy { service.extractMetadata("other:\n  id: x") }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
             .hasMessageContaining("'flow'")
     }
 
-    @Test @DisplayName("Missing id is rejected")
+    @Test
+    @DisplayName("Missing id is rejected")
     fun missingId() {
-        val yaml = """
+        val yaml =
+            """
             flow:
               version: "1.0.0"
               contract: {}
@@ -85,9 +116,11 @@ class YamlValidationServiceTest {
             .hasMessageContaining("'flow.id'")
     }
 
-    @Test @DisplayName("Missing version is rejected")
+    @Test
+    @DisplayName("Missing version is rejected")
     fun missingVersion() {
-        val yaml = """
+        val yaml =
+            """
             flow:
               id: "x"
               contract: {}
@@ -99,9 +132,11 @@ class YamlValidationServiceTest {
             .hasMessageContaining("'flow.version'")
     }
 
-    @Test @DisplayName("Missing contract is rejected")
+    @Test
+    @DisplayName("Missing contract is rejected")
     fun missingContract() {
-        val yaml = """
+        val yaml =
+            """
             flow:
               id: "x"
               version: "1.0"
@@ -113,9 +148,11 @@ class YamlValidationServiceTest {
             .hasMessageContaining("'flow.contract'")
     }
 
-    @Test @DisplayName("Empty integrations is rejected")
+    @Test
+    @DisplayName("Empty integrations is rejected")
     fun emptyIntegrations() {
-        val yaml = """
+        val yaml =
+            """
             flow:
               id: "x"
               version: "1.0"
@@ -127,9 +164,11 @@ class YamlValidationServiceTest {
             .hasMessageContaining("integration")
     }
 
-    @Test @DisplayName("Missing integrations is rejected")
+    @Test
+    @DisplayName("Missing integrations is rejected")
     fun missingIntegrations() {
-        val yaml = """
+        val yaml =
+            """
             flow:
               id: "x"
               version: "1.0"
@@ -140,7 +179,8 @@ class YamlValidationServiceTest {
             .hasMessageContaining("integration")
     }
 
-    @Test @DisplayName("Blank id is rejected")
+    @Test
+    @DisplayName("Blank id is rejected")
     fun blankId() {
         val yaml = validYaml.replace("\"create-order-v1\"", "\"\"")
         assertThatThrownBy { service.extractMetadata(yaml) }

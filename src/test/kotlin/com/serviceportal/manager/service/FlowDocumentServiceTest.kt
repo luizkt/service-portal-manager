@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.service
 
 import com.serviceportal.manager.client.OrchestratorCacheClient
@@ -19,14 +42,14 @@ import org.springframework.data.domain.PageRequest
 import java.time.LocalDateTime
 
 class FlowDocumentServiceTest {
-
     private val repo: FlowDocumentRepository = mockk()
     private val validator = YamlValidationService()
     private val versioning = VersioningService()
     private val cacheClient: OrchestratorCacheClient = mockk(relaxed = true)
     private val service = FlowDocumentService(repo, validator, versioning, cacheClient)
 
-    private val baseYaml = """
+    private val baseYaml =
+        """
         flow:
           id: "create-order-v1"
           version: "1.0.0"
@@ -42,7 +65,8 @@ class FlowDocumentServiceTest {
         """.trimIndent()
 
     /** YAML com `description` diferente — provoca PATCH bump. */
-    private val patchYaml = """
+    private val patchYaml =
+        """
         flow:
           id: "create-order-v1"
           version: "1.0.0"
@@ -58,7 +82,8 @@ class FlowDocumentServiceTest {
         """.trimIndent()
 
     /** YAML com `contract` diferente — provoca MAJOR bump. */
-    private val majorYaml = """
+    private val majorYaml =
+        """
         flow:
           id: "create-order-v1"
           version: "1.0.0"
@@ -74,7 +99,10 @@ class FlowDocumentServiceTest {
               type: HTTP
         """.trimIndent()
 
-    private fun stored(active: Boolean = true, yamlContent: String? = baseYaml) = FlowDocument(
+    private fun stored(
+        active: Boolean = true,
+        yamlContent: String? = baseYaml,
+    ) = FlowDocument(
         mongoId = "abc",
         flowId = "create-order-v1",
         version = "1.0.0",
@@ -82,10 +110,11 @@ class FlowDocumentServiceTest {
         active = active,
         yamlContent = yamlContent,
         createdAt = LocalDateTime.of(2026, 1, 1, 0, 0),
-        updatedAt = LocalDateTime.of(2026, 1, 1, 0, 0)
+        updatedAt = LocalDateTime.of(2026, 1, 1, 0, 0),
     )
 
-    @Test @DisplayName("create persists new document")
+    @Test
+    @DisplayName("create persists new document")
     fun createPersists() {
         every { repo.existsByFlowIdAndVersion("create-order-v1", "1.0.0") } returns false
         val saveSlot = slot<FlowDocument>()
@@ -99,7 +128,8 @@ class FlowDocumentServiceTest {
         assertThat(saveSlot.captured.createdAt).isNotNull()
     }
 
-    @Test @DisplayName("create throws 409 when already exists")
+    @Test
+    @DisplayName("create throws 409 when already exists")
     fun createConflict() {
         every { repo.existsByFlowIdAndVersion(any(), any()) } returns true
         assertThatThrownBy { service.create(baseYaml) }
@@ -107,7 +137,8 @@ class FlowDocumentServiceTest {
             .hasMessageContaining("create-order-v1")
     }
 
-    @Test @DisplayName("update (PATCH bump): keeps old version active and creates new 1.0.1")
+    @Test
+    @DisplayName("update (PATCH bump): keeps old version active and creates new 1.0.1")
     fun updatePatchBump() {
         val existing = stored()
         every { repo.findByFlowIdAndVersionWithYaml("create-order-v1", "1.0.0") } returns existing
@@ -132,7 +163,8 @@ class FlowDocumentServiceTest {
         verify(exactly = 1) { cacheClient.evictWorkflow("create-order-v1", "1.0.0") }
     }
 
-    @Test @DisplayName("update (MAJOR bump): keeps old version active and creates new 2.0.0")
+    @Test
+    @DisplayName("update (MAJOR bump): keeps old version active and creates new 2.0.0")
     fun updateMajorBump() {
         val existing = stored()
         every { repo.findByFlowIdAndVersionWithYaml("create-order-v1", "1.0.0") } returns existing
@@ -148,21 +180,24 @@ class FlowDocumentServiceTest {
         assertThat(existing.active).isTrue()
     }
 
-    @Test @DisplayName("update throws 400 when path flowId diverges from YAML flow.id")
+    @Test
+    @DisplayName("update throws 400 when path flowId diverges from YAML flow.id")
     fun updateDivergentFlowId() {
         assertThatThrownBy { service.update("other-id", "1.0.0", baseYaml) }
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
             .hasMessageContaining("does not match")
     }
 
-    @Test @DisplayName("update throws 404 when existing version not found")
+    @Test
+    @DisplayName("update throws 404 when existing version not found")
     fun updateMissing() {
         every { repo.findByFlowIdAndVersionWithYaml(any(), any()) } returns null
         assertThatThrownBy { service.update("create-order-v1", "1.0.0", baseYaml) }
             .isInstanceOf(FlowNotFoundException::class.java)
     }
 
-    @Test @DisplayName("update throws 404 when existing doc has no yamlContent")
+    @Test
+    @DisplayName("update throws 404 when existing doc has no yamlContent")
     fun updateNoYamlContent() {
         every { repo.findByFlowIdAndVersionWithYaml("create-order-v1", "1.0.0") } returns stored(yamlContent = null)
         assertThatThrownBy { service.update("create-order-v1", "1.0.0", baseYaml) }
@@ -170,7 +205,8 @@ class FlowDocumentServiceTest {
             .hasMessageContaining("yamlContent")
     }
 
-    @Test @DisplayName("update throws 409 when calculated next version already exists")
+    @Test
+    @DisplayName("update throws 409 when calculated next version already exists")
     fun updateCalculatedVersionConflict() {
         val existing = stored()
         every { repo.findByFlowIdAndVersionWithYaml("create-order-v1", "1.0.0") } returns existing
@@ -181,7 +217,8 @@ class FlowDocumentServiceTest {
             .hasMessageContaining("1.0.1")
     }
 
-    @Test @DisplayName("get uses lightweight repo method (no yamlContent)")
+    @Test
+    @DisplayName("get uses lightweight repo method (no yamlContent)")
     fun getUsesLightweight() {
         every { repo.findByFlowIdAndVersion("create-order-v1", "1.0.0") } returns stored(yamlContent = null)
         val dto = service.get("create-order-v1", "1.0.0")
@@ -190,14 +227,16 @@ class FlowDocumentServiceTest {
         verify(exactly = 0) { repo.findByFlowIdAndVersionWithYaml(any(), any()) }
     }
 
-    @Test @DisplayName("get throws 404 when missing")
+    @Test
+    @DisplayName("get throws 404 when missing")
     fun getMissing() {
         every { repo.findByFlowIdAndVersion(any(), any()) } returns null
         assertThatThrownBy { service.get("x", "1.0.0") }
             .isInstanceOf(FlowNotFoundException::class.java)
     }
 
-    @Test @DisplayName("listAll returns only active workflows (paginated)")
+    @Test
+    @DisplayName("listAll returns only active workflows (paginated)")
     fun listAllOnlyActive() {
         val pageable = PageRequest.of(0, 20)
         val page = PageImpl(listOf(stored(yamlContent = null)), pageable, 1)
@@ -212,20 +251,23 @@ class FlowDocumentServiceTest {
         verify(exactly = 0) { repo.findAll(pageable) }
     }
 
-    @Test @DisplayName("listVersions without status returns all versions sorted by version ASC")
+    @Test
+    @DisplayName("listVersions without status returns all versions sorted by version ASC")
     fun listVersionsAll() {
         val sort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "version")
-        every { repo.findAllByFlowId("create-order-v1", sort) } returns listOf(
-            stored(active = false),
-            stored(active = true)
-        )
+        every { repo.findAllByFlowId("create-order-v1", sort) } returns
+            listOf(
+                stored(active = false),
+                stored(active = true),
+            )
         val result = service.listVersions("create-order-v1", null)
         assertThat(result).hasSize(2)
         verify(exactly = 1) { repo.findAllByFlowId("create-order-v1", sort) }
         verify(exactly = 0) { repo.findAllByFlowIdAndActive(any(), any(), any()) }
     }
 
-    @Test @DisplayName("listVersions status=inactive returns only inactive versions")
+    @Test
+    @DisplayName("listVersions status=inactive returns only inactive versions")
     fun listVersionsInactive() {
         val sort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "version")
         every { repo.findAllByFlowIdAndActive("create-order-v1", false, sort) } returns listOf(stored(active = false))
@@ -235,7 +277,8 @@ class FlowDocumentServiceTest {
         verify(exactly = 1) { repo.findAllByFlowIdAndActive("create-order-v1", false, sort) }
     }
 
-    @Test @DisplayName("listVersions status=active returns only active versions")
+    @Test
+    @DisplayName("listVersions status=active returns only active versions")
     fun listVersionsActive() {
         val sort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "version")
         every { repo.findAllByFlowIdAndActive("create-order-v1", true, sort) } returns listOf(stored())
@@ -244,14 +287,16 @@ class FlowDocumentServiceTest {
         assertThat(result[0].active).isTrue()
     }
 
-    @Test @DisplayName("listVersions returns empty list when flowId has no versions")
+    @Test
+    @DisplayName("listVersions returns empty list when flowId has no versions")
     fun listVersionsEmpty() {
         val sort = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "version")
         every { repo.findAllByFlowId("unknown-flow", sort) } returns emptyList()
         assertThat(service.listVersions("unknown-flow", null)).isEmpty()
     }
 
-    @Test @DisplayName("listActive filters active=true (without yamlContent)")
+    @Test
+    @DisplayName("listActive filters active=true (without yamlContent)")
     fun listActive() {
         every { repo.findByActiveTrue() } returns listOf(stored(yamlContent = null))
         val active = service.listActive()
@@ -259,7 +304,8 @@ class FlowDocumentServiceTest {
         assertThat(active[0].active).isTrue()
     }
 
-    @Test @DisplayName("deactivate uses WithYaml and sets active=false on save")
+    @Test
+    @DisplayName("deactivate uses WithYaml and sets active=false on save")
     fun deactivateUsesWithYaml() {
         val doc = stored()
         every { repo.findByFlowIdAndVersionWithYaml(any(), any()) } returns doc
@@ -273,7 +319,8 @@ class FlowDocumentServiceTest {
         verify(exactly = 1) { repo.save(doc) }
     }
 
-    @Test @DisplayName("deactivate is idempotent — already inactive does not save")
+    @Test
+    @DisplayName("deactivate is idempotent — already inactive does not save")
     fun deactivateIdempotent() {
         val doc = stored(active = false)
         every { repo.findByFlowIdAndVersionWithYaml(any(), any()) } returns doc
@@ -283,21 +330,24 @@ class FlowDocumentServiceTest {
         verify(exactly = 0) { repo.save(any()) }
     }
 
-    @Test @DisplayName("deactivate throws 404 when missing")
+    @Test
+    @DisplayName("deactivate throws 404 when missing")
     fun deactivateMissing() {
         every { repo.findByFlowIdAndVersionWithYaml(any(), any()) } returns null
         assertThatThrownBy { service.deactivate("x", "1.0.0") }
             .isInstanceOf(FlowNotFoundException::class.java)
     }
 
-    @Test @DisplayName("getYaml uses WithYaml and returns content")
+    @Test
+    @DisplayName("getYaml uses WithYaml and returns content")
     fun getYamlUsesWithYaml() {
         every { repo.findByFlowIdAndVersionWithYaml("create-order-v1", "1.0.0") } returns stored()
         assertThat(service.getYaml("create-order-v1", "1.0.0")).isEqualTo(baseYaml)
         verify(exactly = 1) { repo.findByFlowIdAndVersionWithYaml("create-order-v1", "1.0.0") }
     }
 
-    @Test @DisplayName("getYaml throws 404 when doc has no yamlContent (legacy)")
+    @Test
+    @DisplayName("getYaml throws 404 when doc has no yamlContent (legacy)")
     fun getYamlNoContent() {
         every { repo.findByFlowIdAndVersionWithYaml(any(), any()) } returns stored(yamlContent = null)
         assertThatThrownBy { service.getYaml("create-order-v1", "1.0.0") }
@@ -305,7 +355,8 @@ class FlowDocumentServiceTest {
             .hasMessageContaining("yamlContent")
     }
 
-    @Test @DisplayName("getYaml throws 404 when missing")
+    @Test
+    @DisplayName("getYaml throws 404 when missing")
     fun getYamlMissing() {
         every { repo.findByFlowIdAndVersionWithYaml(any(), any()) } returns null
         assertThatThrownBy { service.getYaml("x", "1.0.0") }

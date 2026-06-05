@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Luiz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.serviceportal.manager.controller
 
 import com.serviceportal.manager.dto.FlowSummaryDto
@@ -14,21 +37,31 @@ import org.springframework.data.domain.PageRequest
 import java.time.LocalDateTime
 
 class FlowControllerTest {
-
     private val service: FlowDocumentService = mockk(relaxUnitFun = true)
     private val controller = FlowController(service)
 
-    private val summary = FlowSummaryDto(
-        flowId = "x", version = "1.0.0", description = "d", active = true,
-        createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now()
-    )
+    private val summary =
+        FlowSummaryDto(
+            flowId = "x",
+            version = "1.0.0",
+            description = "d",
+            active = true,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+        )
 
-    private val newVersionSummary = FlowSummaryDto(
-        flowId = "x", version = "1.0.1", description = "d", active = true,
-        createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now()
-    )
+    private val newVersionSummary =
+        FlowSummaryDto(
+            flowId = "x",
+            version = "1.0.1",
+            description = "d",
+            active = true,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+        )
 
-    @Test @DisplayName("POST /manager/flows -> 201")
+    @Test
+    @DisplayName("POST /manager/flows -> 201")
     fun createOk() {
         every { service.create("yaml") } returns summary
         val resp = controller.create("yaml")
@@ -36,7 +69,8 @@ class FlowControllerTest {
         assertThat(resp.body).isEqualTo(summary)
     }
 
-    @Test @DisplayName("GET /manager/flows (paginated, active only) -> Page<FlowSummaryDto>")
+    @Test
+    @DisplayName("GET /manager/flows (paginated, active only) -> Page<FlowSummaryDto>")
     fun listPaginated() {
         val pageable = PageRequest.of(0, 20)
         val page = PageImpl(listOf(summary), pageable, 1)
@@ -52,7 +86,8 @@ class FlowControllerTest {
         verify(exactly = 1) { service.listAll(pageable) }
     }
 
-    @Test @DisplayName("GET /manager/flows?status=active -> List<FlowSummaryDto> (no Page envelope)")
+    @Test
+    @DisplayName("GET /manager/flows?status=active -> List<FlowSummaryDto> (no Page envelope)")
     fun listActive() {
         every { service.listActive() } returns listOf(summary)
         val resp = controller.list(PageRequest.of(0, 20), "active")
@@ -64,7 +99,8 @@ class FlowControllerTest {
         verify(exactly = 1) { service.listActive() }
     }
 
-    @Test @DisplayName("GET /manager/flows/{id}/versions (sem status) -> todas as versões")
+    @Test
+    @DisplayName("GET /manager/flows/{id}/versions (sem status) -> todas as versões")
     fun listVersionsAll() {
         val inactive = summary.copy(version = "1.0.0", active = false)
         every { service.listVersions("x", null) } returns listOf(inactive, summary.copy(version = "1.0.1"))
@@ -74,7 +110,8 @@ class FlowControllerTest {
         verify(exactly = 1) { service.listVersions("x", null) }
     }
 
-    @Test @DisplayName("GET /manager/flows/{id}/versions?status=inactive -> somente inativas")
+    @Test
+    @DisplayName("GET /manager/flows/{id}/versions?status=inactive -> somente inativas")
     fun listVersionsInactive() {
         val inactive = summary.copy(version = "1.0.0", active = false)
         every { service.listVersions("x", "inactive") } returns listOf(inactive)
@@ -83,13 +120,15 @@ class FlowControllerTest {
         assertThat(resp.body).containsExactly(inactive)
     }
 
-    @Test @DisplayName("GET /manager/flows/{id}/versions/{v}")
+    @Test
+    @DisplayName("GET /manager/flows/{id}/versions/{v}")
     fun getOne() {
         every { service.get("x", "1.0.0") } returns summary
         assertThat(controller.get("x", "1.0.0").body).isEqualTo(summary)
     }
 
-    @Test @DisplayName("GET /manager/flows/{id}/versions/{v}/yaml -> application/x-yaml")
+    @Test
+    @DisplayName("GET /manager/flows/{id}/versions/{v}/yaml -> application/x-yaml")
     fun getYaml() {
         every { service.getYaml("x", "1.0.0") } returns "flow:\n  id: x"
         val resp = controller.getYaml("x", "1.0.0")
@@ -98,7 +137,8 @@ class FlowControllerTest {
         assertThat(resp.headers.getFirst("Content-Type")).isEqualTo("application/x-yaml")
     }
 
-    @Test @DisplayName("PUT /manager/flows/{id}/versions/{v} -> 201 com nova versão e Location header")
+    @Test
+    @DisplayName("PUT /manager/flows/{id}/versions/{v} -> 201 com nova versão e Location header")
     fun updateReturns201WithNewVersion() {
         every { service.update("x", "1.0.0", "yaml") } returns newVersionSummary
         val resp = controller.update("x", "1.0.0", "yaml")
@@ -109,7 +149,8 @@ class FlowControllerTest {
             .isEqualTo("/manager/flows/x/versions/1.0.1")
     }
 
-    @Test @DisplayName("DELETE /manager/flows/{id}/versions/{v} -> 204")
+    @Test
+    @DisplayName("DELETE /manager/flows/{id}/versions/{v} -> 204")
     fun delete() {
         val resp = controller.delete("x", "1.0.0")
         assertThat(resp.statusCode.value()).isEqualTo(204)
