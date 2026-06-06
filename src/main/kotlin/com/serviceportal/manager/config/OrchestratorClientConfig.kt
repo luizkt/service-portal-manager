@@ -37,6 +37,7 @@ import org.springframework.web.client.RestClient
 class OrchestratorClientConfig {
     @Bean("orchestratorRestClient")
     fun orchestratorRestClient(
+        builder: RestClient.Builder,
         @Value("\${orchestrator.url:http://localhost:8080}") url: String,
-    ): RestClient = RestClient.builder().baseUrl(url).build()
+    ): RestClient = builder.baseUrl(url).build()
 }
