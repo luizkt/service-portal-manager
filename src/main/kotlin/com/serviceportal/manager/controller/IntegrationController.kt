@@ -26,6 +26,10 @@ package com.serviceportal.manager.controller
 import com.serviceportal.manager.dto.IntegrationDto
 import com.serviceportal.manager.dto.IntegrationRequest
 import com.serviceportal.manager.service.IntegrationService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -50,40 +54,60 @@ import java.net.URI
  *   - WORKFLOWS (workop): leitura apenas
  *   - RULES (bizop)   : sem acesso
  */
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Integrations")
 @RestController
 @RequestMapping("/manager/integrations")
 class IntegrationController(private val service: IntegrationService) {
+    @Operation(summary = "Criar integração")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "201", description = "Criada"),
+        ApiResponse(responseCode = "409", description = "Já existe"),
+    ])
     @PostMapping
     fun create(
         @RequestBody request: IntegrationRequest,
     ): ResponseEntity<IntegrationDto> = ResponseEntity.status(HttpStatus.CREATED).body(service.create(request))
 
+    @Operation(summary = "Listar integrações (paginado)")
+    @ApiResponse(responseCode = "200", description = "Página de integrações ou lista de ativas")
     @GetMapping
     fun list(
         @PageableDefault(size = 20, sort = ["integrationId", "version"], direction = Sort.Direction.ASC)
         pageable: Pageable,
-        @RequestParam(required = false) status: String?,
+        @Parameter(description = "Use 'active' para listar todas as ativas") @RequestParam(required = false) status: String?,
     ): ResponseEntity<Any> {
         if (status == "active") return ResponseEntity.ok<Any>(service.listActive())
         return ResponseEntity.ok<Any>(service.listAll(pageable))
     }
 
+    @Operation(summary = "Histórico de versões de uma integração")
+    @ApiResponse(responseCode = "200", description = "Lista de versões")
     @GetMapping("/{integrationId}/versions")
     fun listVersions(
-        @PathVariable integrationId: String,
-        @RequestParam(required = false) status: String?,
+        @Parameter(description = "ID da integração", example = "validate-client") @PathVariable integrationId: String,
+        @Parameter(description = "Filtro: active | inactive") @RequestParam(required = false) status: String?,
     ): ResponseEntity<List<IntegrationDto>> = ResponseEntity.ok(service.listVersions(integrationId, status))
 
+    @Operation(summary = "Buscar integração por versão")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Integração encontrada"),
+        ApiResponse(responseCode = "404", description = "Não encontrada"),
+    ])
     @GetMapping("/{integrationId}/versions/{version}")
     fun get(
-        @PathVariable integrationId: String,
-        @PathVariable version: Int,
+        @Parameter(description = "ID da integração", example = "validate-client") @PathVariable integrationId: String,
+        @Parameter(description = "Número da versão", example = "1") @PathVariable version: Int,
     ): ResponseEntity<IntegrationDto> = ResponseEntity.ok(service.get(integrationId, version))
 
+    @Operation(summary = "Atualizar integração (nova versão)")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "201", description = "Nova versão criada"),
+        ApiResponse(responseCode = "404", description = "Não encontrada"),
+    ])
     @PutMapping("/{integrationId}/versions/{version}")
     fun update(
-        @PathVariable integrationId: String,
-        @PathVariable version: Int,
+        @Parameter(description = "ID da integração", example = "validate-client") @PathVariable integrationId: String,
+        @Parameter(description = "Número da versão atual", example = "1") @PathVariable version: Int,
         @RequestBody request: IntegrationRequest,
     ): ResponseEntity<IntegrationDto> {
         val result = service.update(integrationId, version, request)
@@ -91,10 +115,15 @@ class IntegrationController(private val service: IntegrationService) {
         return ResponseEntity.created(location).body(result)
     }
 
+    @Operation(summary = "Desativar integração")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "204", description = "Desativada"),
+        ApiResponse(responseCode = "404", description = "Não encontrada"),
+    ])
     @DeleteMapping("/{integrationId}/versions/{version}")
     fun delete(
-        @PathVariable integrationId: String,
-        @PathVariable version: Int,
+        @Parameter(description = "ID da integração", example = "validate-client") @PathVariable integrationId: String,
+        @Parameter(description = "Número da versão", example = "1") @PathVariable version: Int,
     ): ResponseEntity<Void> {
         service.deactivate(integrationId, version)
         return ResponseEntity.noContent().build()

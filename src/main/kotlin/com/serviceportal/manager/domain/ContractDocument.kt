@@ -23,6 +23,7 @@
  */
 package com.serviceportal.manager.domain
 
+import io.swagger.v3.oas.annotations.media.Schema
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDateTime
@@ -40,8 +41,11 @@ data class ContractDocument(
 )
 
 data class ContractField(
+    @Schema(description = "Nome do campo", example = "clientId")
     val name: String,
+    @Schema(description = "Tipo do campo", allowableValues = ["STRING", "INTEGER", "DECIMAL", "BOOLEAN", "ARRAY", "OBJECT"], example = "STRING")
     val type: String,
+    @Schema(description = "Campo obrigatório", example = "true")
     val required: Boolean,
     val validations: List<FieldValidation> = emptyList(),
 )

@@ -26,6 +26,7 @@ extra["jjwtVersion"] = "0.12.6"
 extra["sbaVersion"] = "3.4.0"
 
 dependencies {
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8")
     implementation("de.codecentric:spring-boot-admin-starter-client:${property("sbaVersion")}")
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
@@ -96,6 +97,7 @@ tasks.named<BootJar>("bootJar") {
 // que o JaCoCo contabiliza neles é equals/hashCode/copy/componentN gerados.
 val coverageExclusions = listOf(
     "com/serviceportal/manager/ManagerApplication*",
+    "com/serviceportal/manager/config/OpenApiConfig*",
     "com/serviceportal/manager/dto/**",
     "com/serviceportal/manager/exception/**",
     "com/serviceportal/manager/domain/**"

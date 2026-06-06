@@ -49,15 +49,23 @@ class YamlValidationService {
 
     @Suppress("UNCHECKED_CAST")
     fun extractContractFields(yamlContent: String): List<ContractField> {
-        val root = try {
-            mapper.readValue(yamlContent, Map::class.java) as Map<String, Any?>
-        } catch (_: Exception) { return emptyList() }
+        val root =
+            try {
+                mapper.readValue(yamlContent, Map::class.java) as Map<String, Any?>
+            } catch (_: Exception) {
+                return emptyList()
+            }
         val flow = root["flow"] as? Map<String, Any?> ?: return emptyList()
         val contract = flow["contract"] as? Map<String, Any?> ?: return emptyList()
-        val rawFields = (contract["fields"] as? List<*>)?.filterIsInstance<Map<String, Any?>>()
-            ?: return emptyList()
+        val rawFields =
+            (contract["fields"] as? List<*>)?.filterIsInstance<Map<String, Any?>>()
+                ?: return emptyList()
         return rawFields.mapNotNull { fieldMap ->
-            try { mapper.convertValue(fieldMap, ContractField::class.java) } catch (_: Exception) { null }
+            try {
+                mapper.convertValue(fieldMap, ContractField::class.java)
+            } catch (_: Exception) {
+                null
+            }
         }
     }
 

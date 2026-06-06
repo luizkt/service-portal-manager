@@ -111,4 +111,10 @@ class SecurityConfigIT {
         mvc.perform(get("/manager/flows").header("Authorization", "Bearer $token"))
             .andExpect(status().isOk)
     }
+
+    @Test
+    @DisplayName("GET /v3/api-docs is public, returns 200 without token")
+    fun swaggerApiDocsPublic() {
+        mvc.perform(get("/v3/api-docs")).andExpect(status().isOk)
+    }
 }

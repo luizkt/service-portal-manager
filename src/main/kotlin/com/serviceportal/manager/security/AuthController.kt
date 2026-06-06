@@ -25,6 +25,11 @@ package com.serviceportal.manager.security
 
 import com.serviceportal.manager.dto.LoginRequest
 import com.serviceportal.manager.dto.LoginResponse
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.ExampleObject
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -39,6 +44,7 @@ import org.springframework.web.bind.annotation.RestController
  * Autenticação simplificada para fins de demonstração — mesmo padrão do
  * generic-orchestrator. Em produção: integrar com banco de usuários + BCrypt.
  */
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Auth")
 @RestController
 @RequestMapping("/api/auth")
 class AuthController(
@@ -46,6 +52,20 @@ class AuthController(
     @Value("\${manager.security.admin.username:admin}") private val adminUser: String,
     @Value("\${manager.security.admin.password:admin}") private val adminPass: String,
 ) {
+    @Operation(
+        summary = "Obter token JWT",
+        description = "Autenticação server-to-server (admin/admin). Retorna JWT HS512 para uso como Bearer nas demais chamadas.",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(
+                responseCode = "201",
+                description = "Token gerado",
+                content = [Content(examples = [ExampleObject(value = """{"token":"eyJhbGciOiJIUzUxMiJ9...","expiresIn":3600}""")])],
+            ),
+            ApiResponse(responseCode = "401", description = "Credenciais inválidas"),
+        ],
+    )
     @PostMapping("/tokens")
     fun createToken(
         @RequestBody request: LoginRequest,
