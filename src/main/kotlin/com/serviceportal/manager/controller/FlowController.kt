@@ -23,6 +23,7 @@
  */
 package com.serviceportal.manager.controller
 
+import com.serviceportal.manager.dto.FlowExampleDto
 import com.serviceportal.manager.dto.FlowSummaryDto
 import com.serviceportal.manager.service.FlowDocumentService
 import org.springframework.data.domain.Pageable
@@ -110,6 +111,13 @@ class FlowController(private val service: FlowDocumentService) {
         @PathVariable flowId: String,
         @PathVariable version: String,
     ): ResponseEntity<FlowSummaryDto> = ResponseEntity.ok(service.get(flowId, version))
+
+    /** Exemplo de payload de execução gerado a partir dos campos do contrato do flow. */
+    @GetMapping("/{flowId}/versions/{version}/examples")
+    fun getExample(
+        @PathVariable flowId: String,
+        @PathVariable version: String,
+    ): ResponseEntity<FlowExampleDto> = ResponseEntity.ok(service.getExample(flowId, version))
 
     /** YAML cru — sub-recurso da versão. Substitui o antigo `/manager/workflows/{id}/{ver}/yaml`. */
     @GetMapping("/{flowId}/versions/{version}/yaml", produces = [MediaType.TEXT_PLAIN_VALUE])

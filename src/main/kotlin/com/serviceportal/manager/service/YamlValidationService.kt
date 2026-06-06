@@ -25,6 +25,7 @@ package com.serviceportal.manager.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.serviceportal.manager.domain.ContractField
 import com.serviceportal.manager.exception.InvalidFlowDefinitionException
 import org.springframework.stereotype.Service
 
@@ -45,6 +46,20 @@ class YamlValidationService {
         val description: String?,
         val active: Boolean,
     )
+
+    @Suppress("UNCHECKED_CAST")
+    fun extractContractFields(yamlContent: String): List<ContractField> {
+        val root = try {
+            mapper.readValue(yamlContent, Map::class.java) as Map<String, Any?>
+        } catch (_: Exception) { return emptyList() }
+        val flow = root["flow"] as? Map<String, Any?> ?: return emptyList()
+        val contract = flow["contract"] as? Map<String, Any?> ?: return emptyList()
+        val rawFields = (contract["fields"] as? List<*>)?.filterIsInstance<Map<String, Any?>>()
+            ?: return emptyList()
+        return rawFields.mapNotNull { fieldMap ->
+            try { mapper.convertValue(fieldMap, ContractField::class.java) } catch (_: Exception) { null }
+        }
+    }
 
     fun extractMetadata(yamlContent: String): FlowMetadata {
         if (yamlContent.isBlank()) {

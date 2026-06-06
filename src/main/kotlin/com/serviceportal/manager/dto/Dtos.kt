@@ -26,6 +26,11 @@ package com.serviceportal.manager.dto
 import com.serviceportal.manager.domain.ContractField
 import java.time.LocalDateTime
 
+data class FlowExampleDto(
+    val example: Map<String, Any?>,
+    val fields: List<ContractField>,
+)
+
 /** Resposta resumida de um fluxo — usada nos GETs e na lista de ativos. */
 data class FlowSummaryDto(
     val flowId: String,

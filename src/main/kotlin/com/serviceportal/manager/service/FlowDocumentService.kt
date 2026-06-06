@@ -25,6 +25,7 @@ package com.serviceportal.manager.service
 
 import com.serviceportal.manager.client.OrchestratorCacheClient
 import com.serviceportal.manager.domain.FlowDocument
+import com.serviceportal.manager.dto.FlowExampleDto
 import com.serviceportal.manager.dto.FlowSummaryDto
 import com.serviceportal.manager.exception.FlowAlreadyExistsException
 import com.serviceportal.manager.exception.FlowNotFoundException
@@ -171,6 +172,34 @@ class FlowDocumentService(
         doc.updatedAt = LocalDateTime.now()
         repository.save(doc)
         orchestratorCacheClient.evictWorkflow(flowId, version)
+    }
+
+    fun getExample(
+        flowId: String,
+        version: String,
+    ): FlowExampleDto {
+        val doc =
+            repository.findByFlowIdAndVersionWithYaml(flowId, version)
+                ?: throw FlowNotFoundException("Flow '$flowId' version '$version' not found")
+        val yaml =
+            doc.yamlContent
+                ?: throw FlowNotFoundException("Flow '$flowId' version '$version' has no yamlContent")
+        val fields = yamlValidator.extractContractFields(yaml)
+        val example =
+            fields.associate { field ->
+                val sampleValue: Any? =
+                    when (field.type.uppercase()) {
+                        "STRING" -> "exemplo"
+                        "INTEGER", "INT", "LONG" -> 0
+                        "NUMBER", "FLOAT", "DOUBLE" -> 0.0
+                        "BOOLEAN", "BOOL" -> false
+                        "ARRAY", "LIST" -> emptyList<Any>()
+                        "OBJECT", "MAP" -> emptyMap<String, Any>()
+                        else -> "exemplo"
+                    }
+                field.name to sampleValue
+            }
+        return FlowExampleDto(example = example, fields = fields)
     }
 
     fun getYaml(
