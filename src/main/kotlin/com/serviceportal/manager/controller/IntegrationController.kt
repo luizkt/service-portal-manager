@@ -59,10 +59,12 @@ import java.net.URI
 @RequestMapping("/manager/integrations")
 class IntegrationController(private val service: IntegrationService) {
     @Operation(summary = "Criar integração")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "201", description = "Criada"),
-        ApiResponse(responseCode = "409", description = "Já existe"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "Criada"),
+            ApiResponse(responseCode = "409", description = "Já existe"),
+        ],
+    )
     @PostMapping
     fun create(
         @RequestBody request: IntegrationRequest,
@@ -89,10 +91,12 @@ class IntegrationController(private val service: IntegrationService) {
     ): ResponseEntity<List<IntegrationDto>> = ResponseEntity.ok(service.listVersions(integrationId, status))
 
     @Operation(summary = "Buscar integração por versão")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "200", description = "Integração encontrada"),
-        ApiResponse(responseCode = "404", description = "Não encontrada"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Integração encontrada"),
+            ApiResponse(responseCode = "404", description = "Não encontrada"),
+        ],
+    )
     @GetMapping("/{integrationId}/versions/{version}")
     fun get(
         @Parameter(description = "ID da integração", example = "validate-client") @PathVariable integrationId: String,
@@ -100,10 +104,12 @@ class IntegrationController(private val service: IntegrationService) {
     ): ResponseEntity<IntegrationDto> = ResponseEntity.ok(service.get(integrationId, version))
 
     @Operation(summary = "Atualizar integração (nova versão)")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "201", description = "Nova versão criada"),
-        ApiResponse(responseCode = "404", description = "Não encontrada"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "Nova versão criada"),
+            ApiResponse(responseCode = "404", description = "Não encontrada"),
+        ],
+    )
     @PutMapping("/{integrationId}/versions/{version}")
     fun update(
         @Parameter(description = "ID da integração", example = "validate-client") @PathVariable integrationId: String,
@@ -116,10 +122,12 @@ class IntegrationController(private val service: IntegrationService) {
     }
 
     @Operation(summary = "Desativar integração")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "204", description = "Desativada"),
-        ApiResponse(responseCode = "404", description = "Não encontrada"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "Desativada"),
+            ApiResponse(responseCode = "404", description = "Não encontrada"),
+        ],
+    )
     @DeleteMapping("/{integrationId}/versions/{version}")
     fun delete(
         @Parameter(description = "ID da integração", example = "validate-client") @PathVariable integrationId: String,

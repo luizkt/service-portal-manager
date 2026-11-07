@@ -23,6 +23,7 @@
  */
 package com.serviceportal.manager.controller
 
+import com.serviceportal.manager.dto.FlowExampleDto
 import com.serviceportal.manager.dto.FlowSummaryDto
 import com.serviceportal.manager.service.FlowDocumentService
 import io.mockk.every
@@ -155,5 +156,17 @@ class FlowControllerTest {
         val resp = controller.delete("x", "1.0.0")
         assertThat(resp.statusCode.value()).isEqualTo(204)
         verify(exactly = 1) { service.deactivate("x", "1.0.0") }
+    }
+
+    @Test
+    @DisplayName("GET /manager/flows/{id}/versions/{v}/examples -> 200 with the example payload")
+    fun getExampleOk() {
+        val dto = FlowExampleDto(example = mapOf("name" to "exemplo"), fields = emptyList())
+        every { service.getExample("x", "1.0.0") } returns dto
+
+        val resp = controller.getExample("x", "1.0.0")
+
+        assertThat(resp.statusCode.value()).isEqualTo(200)
+        assertThat(resp.body).isEqualTo(dto)
     }
 }

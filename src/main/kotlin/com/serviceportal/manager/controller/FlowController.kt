@@ -21,6 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.serviceportal.manager.controller
 
 import com.serviceportal.manager.dto.FlowExampleDto
@@ -71,10 +73,19 @@ class FlowController(private val service: FlowDocumentService) {
     @Operation(summary = "Criar flow via YAML", description = "Versão inicial sempre 1.0.0.")
     @ApiResponses(
         value = [
-            ApiResponse(responseCode = "201", description = "Flow criado",
-                content = [Content(examples = [ExampleObject(
-                    value = """{"flowId":"create-order-v1","version":"1.0.0","active":true}""",
-                )])]),
+            ApiResponse(
+                responseCode = "201",
+                description = "Flow criado",
+                content = [
+                    Content(
+                        examples = [
+                            ExampleObject(
+                                value = """{"flowId":"create-order-v1","version":"1.0.0","active":true}""",
+                            ),
+                        ],
+                    ),
+                ],
+            ),
             ApiResponse(responseCode = "409", description = "Flow já existe"),
         ],
     )
@@ -121,10 +132,19 @@ class FlowController(private val service: FlowDocumentService) {
      * - sem parâmetro      → todas as versões
      */
     @Operation(summary = "Histórico de versões de um flow")
-    @ApiResponse(responseCode = "200", description = "Lista de versões",
-        content = [Content(examples = [ExampleObject(
-            value = """[{"flowId":"create-order-v1","version":"1.0.0","active":false},{"flowId":"create-order-v1","version":"1.1.0"}]""",
-        )])])
+    @ApiResponse(
+        responseCode = "200",
+        description = "Lista de versões",
+        content = [
+            Content(
+                examples = [
+                    ExampleObject(
+                        value = """[{"flowId":"create-order-v1","version":"1.0.0","active":false},{"flowId":"create-order-v1","version":"1.1.0"}]""",
+                    ),
+                ],
+            ),
+        ],
+    )
     @GetMapping("/{flowId}/versions")
     fun listVersions(
         @Parameter(description = "ID do flow", example = "create-order-v1") @PathVariable flowId: String,
@@ -132,10 +152,12 @@ class FlowController(private val service: FlowDocumentService) {
     ): ResponseEntity<List<FlowSummaryDto>> = ResponseEntity.ok(service.listVersions(flowId, status))
 
     @Operation(summary = "Buscar flow por versão")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "200", description = "Flow encontrado"),
-        ApiResponse(responseCode = "404", description = "Não encontrado"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Flow encontrado"),
+            ApiResponse(responseCode = "404", description = "Não encontrado"),
+        ],
+    )
     @GetMapping("/{flowId}/versions/{version}")
     fun get(
         @Parameter(description = "ID do flow", example = "create-order-v1") @PathVariable flowId: String,
@@ -143,10 +165,19 @@ class FlowController(private val service: FlowDocumentService) {
     ): ResponseEntity<FlowSummaryDto> = ResponseEntity.ok(service.get(flowId, version))
 
     @Operation(summary = "Exemplo de payload para execução", description = "Gera JSON de exemplo a partir dos campos do contrato.")
-    @ApiResponse(responseCode = "200", description = "Exemplo gerado",
-        content = [Content(examples = [ExampleObject(
-            value = """{"example":{"clientId":"exemplo","amount":0},"fields":[{"name":"clientId","type":"STRING","required":true}]}""",
-        )])])
+    @ApiResponse(
+        responseCode = "200",
+        description = "Exemplo gerado",
+        content = [
+            Content(
+                examples = [
+                    ExampleObject(
+                        value = """{"example":{"clientId":"exemplo","amount":0},"fields":[{"name":"clientId","type":"STRING","required":true}]}""",
+                    ),
+                ],
+            ),
+        ],
+    )
     @GetMapping("/{flowId}/versions/{version}/examples")
     fun getExample(
         @Parameter(description = "ID do flow", example = "create-order-v1") @PathVariable flowId: String,
@@ -181,9 +212,17 @@ class FlowController(private val service: FlowDocumentService) {
     )
     @ApiResponses(
         value = [
-            ApiResponse(responseCode = "201", description = "Nova versão criada",
-                headers = [Header(name = "Location", description = "URL da nova versão",
-                    schema = io.swagger.v3.oas.annotations.media.Schema(example = "/manager/flows/create-order-v1/versions/1.1.0"))]),
+            ApiResponse(
+                responseCode = "201",
+                description = "Nova versão criada",
+                headers = [
+                    Header(
+                        name = "Location",
+                        description = "URL da nova versão",
+                        schema = io.swagger.v3.oas.annotations.media.Schema(example = "/manager/flows/create-order-v1/versions/1.1.0"),
+                    ),
+                ],
+            ),
             ApiResponse(responseCode = "404", description = "Flow não encontrado"),
         ],
     )
@@ -207,10 +246,12 @@ class FlowController(private val service: FlowDocumentService) {
     }
 
     @Operation(summary = "Desativar flow")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "204", description = "Desativado"),
-        ApiResponse(responseCode = "404", description = "Não encontrado"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "Desativado"),
+            ApiResponse(responseCode = "404", description = "Não encontrado"),
+        ],
+    )
     @DeleteMapping("/{flowId}/versions/{version}")
     fun delete(
         @Parameter(description = "ID do flow", example = "create-order-v1") @PathVariable flowId: String,

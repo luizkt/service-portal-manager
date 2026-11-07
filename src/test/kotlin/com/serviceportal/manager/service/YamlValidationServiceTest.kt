@@ -187,4 +187,71 @@ class YamlValidationServiceTest {
             .isInstanceOf(InvalidFlowDefinitionException::class.java)
             .hasMessageContaining("'flow.id'")
     }
+
+    @Test
+    @DisplayName("version is required")
+    fun versionRequired() {
+        val yaml = validYaml.replace("version: \"1.0.0\"", "")
+        assertThatThrownBy { service.extractMetadata(yaml) }
+            .isInstanceOf(InvalidFlowDefinitionException::class.java)
+            .hasMessageContaining("flow.version")
+    }
+
+    @Test
+    @DisplayName("extractContractFields reads name, type and required of each field")
+    fun extractFields() {
+        val yaml =
+            """
+            flow:
+              id: "x"
+              version: "1.0.0"
+              contract:
+                fields:
+                  - name: clientId
+                    type: STRING
+                    required: true
+                  - name: qty
+                    type: INTEGER
+                    required: false
+            """.trimIndent()
+
+        val fields = service.extractContractFields(yaml)
+
+        assertThat(fields.map { it.name }).containsExactly("clientId", "qty")
+        assertThat(fields.map { it.type }).containsExactly("STRING", "INTEGER")
+        assertThat(fields.map { it.required }).containsExactly(true, false)
+    }
+
+    @Test
+    @DisplayName("extractContractFields returns empty for invalid YAML")
+    fun extractFieldsInvalidYaml() {
+        assertThat(service.extractContractFields("a: [unclosed")).isEmpty()
+    }
+
+    @Test
+    @DisplayName("extractContractFields returns empty when flow, contract or fields are missing")
+    fun extractFieldsMissingSections() {
+        assertThat(service.extractContractFields("other: 1")).isEmpty()
+        assertThat(service.extractContractFields("flow:\n  id: x")).isEmpty()
+        assertThat(service.extractContractFields("flow:\n  contract:\n    other: 1")).isEmpty()
+    }
+
+    @Test
+    @DisplayName("extractContractFields skips a field that cannot be converted")
+    fun extractFieldsSkipsInvalid() {
+        val yaml =
+            """
+            flow:
+              contract:
+                fields:
+                  - name: ok
+                    type: STRING
+                    required: true
+                  - name: [not, a, string]
+                    type: STRING
+                    required: true
+            """.trimIndent()
+
+        assertThat(service.extractContractFields(yaml).map { it.name }).containsExactly("ok")
+    }
 }
