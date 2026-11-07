@@ -69,7 +69,7 @@ kotlin {
 
 spotless {
     kotlin {
-        licenseHeaderFile(file("${projectDir}/../license-header.txt"))
+        licenseHeaderFile(file("${projectDir}/license-header.txt"))
         ktlint()
         targetExclude("**/build/**")
     }

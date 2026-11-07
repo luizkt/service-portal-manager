@@ -104,5 +104,5 @@ docker compose up -d && ./gradlew bootRun   # só o MongoDB (compose local) e o 
 - `DELETE` é soft-delete (`active=false`) e idempotente. Recriar o mesmo `flowId` e `version` dá 409. `GET /manager/flows` lista só ativos.
 - O `PUT` de workflow cria versão nova em vez de alterar a existente.
 - A invalidação de cache engole exceções: se o orquestrador estiver fora, o cache dele fica velho.
-- Todo `.kt` precisa do header de `../license-header.txt`, senão o Spotless falha.
+- Todo `.kt` precisa do header de `license-header.txt`, senão o Spotless falha. O arquivo é uma cópia do `license-header.txt` da raiz do monorepo: mantenha igual.
 - O gate JaCoCo exclui `ManagerApplication`, `OpenApiConfig`, `dto/**`, `exception/**` e `domain/**`. O resto precisa de teste.
