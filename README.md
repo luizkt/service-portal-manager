@@ -1,5 +1,7 @@
 # Service Portal Manager
 
+[![CI](https://github.com/luizkt/service-portal-manager/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/luizkt/service-portal-manager/actions/workflows/ci.yml?query=branch%3Amain)
+
 Gerenciador de workflows do Service Portal, baseado em Kotlin 2.0 + Spring Boot 3.4 LTS + Gradle (Kotlin DSL).
 
 ## Visão Geral
