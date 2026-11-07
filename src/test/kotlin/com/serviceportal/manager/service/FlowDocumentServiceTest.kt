@@ -362,4 +362,56 @@ class FlowDocumentServiceTest {
         assertThatThrownBy { service.getYaml("x", "1.0.0") }
             .isInstanceOf(FlowNotFoundException::class.java)
     }
+
+    @Test
+    @DisplayName("getExample throws when the flow does not exist")
+    fun getExampleNotFound() {
+        every { repo.findByFlowIdAndVersionWithYaml("create-order-v1", "9.9.9") } returns null
+
+        assertThatThrownBy { service.getExample("create-order-v1", "9.9.9") }
+            .isInstanceOf(FlowNotFoundException::class.java)
+    }
+
+    @Test
+    @DisplayName("getExample throws when the stored document has no YAML")
+    fun getExampleWithoutYaml() {
+        every { repo.findByFlowIdAndVersionWithYaml("create-order-v1", "1.0.0") } returns stored(yamlContent = null)
+
+        assertThatThrownBy { service.getExample("create-order-v1", "1.0.0") }
+            .isInstanceOf(FlowNotFoundException::class.java)
+            .hasMessageContaining("no yamlContent")
+    }
+
+    @Test
+    @DisplayName("getExample builds a sample value for each contract field type")
+    fun getExampleBuildsSamples() {
+        val yaml =
+            """
+            flow:
+              id: "create-order-v1"
+              version: "1.0.0"
+              contract:
+                fields:
+                  - { name: name, type: STRING, required: true }
+                  - { name: qty, type: INTEGER, required: true }
+                  - { name: price, type: NUMBER, required: true }
+                  - { name: paid, type: BOOLEAN, required: true }
+                  - { name: tags, type: ARRAY, required: false }
+                  - { name: meta, type: OBJECT, required: false }
+                  - { name: other, type: UNKNOWN, required: false }
+            """.trimIndent()
+        every { repo.findByFlowIdAndVersionWithYaml("create-order-v1", "1.0.0") } returns stored(yamlContent = yaml)
+
+        val result = service.getExample("create-order-v1", "1.0.0")
+
+        assertThat(result.fields).hasSize(7)
+        assertThat(result.example)
+            .containsEntry("name", "exemplo")
+            .containsEntry("qty", 0)
+            .containsEntry("price", 0.0)
+            .containsEntry("paid", false)
+            .containsEntry("tags", emptyList<Any>())
+            .containsEntry("meta", emptyMap<String, Any>())
+            .containsEntry("other", "exemplo")
+    }
 }

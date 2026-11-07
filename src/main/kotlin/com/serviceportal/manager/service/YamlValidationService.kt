@@ -25,6 +25,7 @@ package com.serviceportal.manager.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.serviceportal.manager.domain.ContractField
 import com.serviceportal.manager.exception.InvalidFlowDefinitionException
 import org.springframework.stereotype.Service
@@ -38,7 +39,8 @@ import org.springframework.stereotype.Service
  */
 @Service
 class YamlValidationService {
-    private val mapper = ObjectMapper(YAMLFactory())
+    // O módulo Kotlin é necessário para montar o data class ContractField (sem ele a conversão falha em silêncio).
+    private val mapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
 
     data class FlowMetadata(
         val flowId: String,

@@ -59,10 +59,12 @@ import java.net.URI
 @RequestMapping("/manager/contracts")
 class ContractController(private val service: ContractService) {
     @Operation(summary = "Criar contrato")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "201", description = "Criado"),
-        ApiResponse(responseCode = "409", description = "Já existe"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "Criado"),
+            ApiResponse(responseCode = "409", description = "Já existe"),
+        ],
+    )
     @PostMapping
     fun create(
         @RequestBody request: ContractRequest,
@@ -89,10 +91,12 @@ class ContractController(private val service: ContractService) {
     ): ResponseEntity<List<ContractDto>> = ResponseEntity.ok(service.listVersions(contractId, status))
 
     @Operation(summary = "Buscar contrato por versão")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "200", description = "Contrato encontrado"),
-        ApiResponse(responseCode = "404", description = "Não encontrado"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Contrato encontrado"),
+            ApiResponse(responseCode = "404", description = "Não encontrado"),
+        ],
+    )
     @GetMapping("/{contractId}/versions/{version}")
     fun get(
         @Parameter(description = "ID do contrato", example = "create-order") @PathVariable contractId: String,
@@ -100,10 +104,12 @@ class ContractController(private val service: ContractService) {
     ): ResponseEntity<ContractDto> = ResponseEntity.ok(service.get(contractId, version))
 
     @Operation(summary = "Atualizar contrato (nova versão)")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "201", description = "Nova versão criada"),
-        ApiResponse(responseCode = "404", description = "Não encontrado"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "Nova versão criada"),
+            ApiResponse(responseCode = "404", description = "Não encontrado"),
+        ],
+    )
     @PutMapping("/{contractId}/versions/{version}")
     fun update(
         @Parameter(description = "ID do contrato", example = "create-order") @PathVariable contractId: String,
@@ -116,10 +122,12 @@ class ContractController(private val service: ContractService) {
     }
 
     @Operation(summary = "Desativar contrato")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "204", description = "Desativado"),
-        ApiResponse(responseCode = "404", description = "Não encontrado"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "Desativado"),
+            ApiResponse(responseCode = "404", description = "Não encontrado"),
+        ],
+    )
     @DeleteMapping("/{contractId}/versions/{version}")
     fun delete(
         @Parameter(description = "ID do contrato", example = "create-order") @PathVariable contractId: String,

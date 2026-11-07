@@ -43,7 +43,11 @@ data class ContractDocument(
 data class ContractField(
     @Schema(description = "Nome do campo", example = "clientId")
     val name: String,
-    @Schema(description = "Tipo do campo", allowableValues = ["STRING", "INTEGER", "DECIMAL", "BOOLEAN", "ARRAY", "OBJECT"], example = "STRING")
+    @Schema(
+        description = "Tipo do campo",
+        allowableValues = ["STRING", "INTEGER", "DECIMAL", "BOOLEAN", "ARRAY", "OBJECT"],
+        example = "STRING",
+    )
     val type: String,
     @Schema(description = "Campo obrigatório", example = "true")
     val required: Boolean,
