@@ -70,7 +70,10 @@ data class IntegrationRequest(
     val integrationId: String,
     @Schema(description = "Tipo da integração", allowableValues = ["HTTP"], example = "HTTP")
     val type: String = "HTTP",
-    @Schema(description = "URL com suporte a templates {{contract.field}}", example = "http://api.exemplo.com/clients/{{contract.clientId}}")
+    @Schema(
+        description = "URL com suporte a templates {{contract.field}}",
+        example = "http://api.exemplo.com/clients/{{contract.clientId}}",
+    )
     val url: String,
     @Schema(description = "Método HTTP", allowableValues = ["GET", "POST", "PUT", "DELETE", "PATCH"], example = "GET")
     val method: String,
@@ -88,7 +91,10 @@ data class IntegrationDto(
     val version: Int,
     @Schema(description = "Tipo da integração", example = "HTTP")
     val type: String,
-    @Schema(description = "URL com suporte a templates {{contract.field}}", example = "http://api.exemplo.com/clients/{{contract.clientId}}")
+    @Schema(
+        description = "URL com suporte a templates {{contract.field}}",
+        example = "http://api.exemplo.com/clients/{{contract.clientId}}",
+    )
     val url: String,
     @Schema(description = "Método HTTP", example = "GET")
     val method: String,

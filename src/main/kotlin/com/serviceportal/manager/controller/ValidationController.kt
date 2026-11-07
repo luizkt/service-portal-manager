@@ -59,10 +59,12 @@ import java.net.URI
 @RequestMapping("/manager/validations")
 class ValidationController(private val service: ValidationService) {
     @Operation(summary = "Criar validação")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "201", description = "Criada"),
-        ApiResponse(responseCode = "409", description = "Já existe"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "Criada"),
+            ApiResponse(responseCode = "409", description = "Já existe"),
+        ],
+    )
     @PostMapping
     fun create(
         @RequestBody request: ValidationRequest,
@@ -89,10 +91,12 @@ class ValidationController(private val service: ValidationService) {
     ): ResponseEntity<List<ValidationDto>> = ResponseEntity.ok(service.listVersions(validationId, status))
 
     @Operation(summary = "Buscar validação por versão")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "200", description = "Validação encontrada"),
-        ApiResponse(responseCode = "404", description = "Não encontrada"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Validação encontrada"),
+            ApiResponse(responseCode = "404", description = "Não encontrada"),
+        ],
+    )
     @GetMapping("/{validationId}/versions/{version}")
     fun get(
         @Parameter(description = "ID da validação", example = "check-credit-limit") @PathVariable validationId: String,
@@ -100,10 +104,12 @@ class ValidationController(private val service: ValidationService) {
     ): ResponseEntity<ValidationDto> = ResponseEntity.ok(service.get(validationId, version))
 
     @Operation(summary = "Atualizar validação (nova versão)")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "201", description = "Nova versão criada"),
-        ApiResponse(responseCode = "404", description = "Não encontrada"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "Nova versão criada"),
+            ApiResponse(responseCode = "404", description = "Não encontrada"),
+        ],
+    )
     @PutMapping("/{validationId}/versions/{version}")
     fun update(
         @Parameter(description = "ID da validação", example = "check-credit-limit") @PathVariable validationId: String,
@@ -116,10 +122,12 @@ class ValidationController(private val service: ValidationService) {
     }
 
     @Operation(summary = "Desativar validação")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "204", description = "Desativada"),
-        ApiResponse(responseCode = "404", description = "Não encontrada"),
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "Desativada"),
+            ApiResponse(responseCode = "404", description = "Não encontrada"),
+        ],
+    )
     @DeleteMapping("/{validationId}/versions/{version}")
     fun delete(
         @Parameter(description = "ID da validação", example = "check-credit-limit") @PathVariable validationId: String,

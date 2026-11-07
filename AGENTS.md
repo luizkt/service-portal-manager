@@ -1,227 +1,109 @@
 # AGENTS.md — service-portal-manager
 
-Guia de contexto para agentes de IA trabalhando neste componente.
+Índice para agentes de IA. Leia antes de abrir código. Método: `../docs/plans/PLAN-repo-indexing.md` (monorepo).
 
----
+<!-- index:meta
+repo: service-portal-manager
+tipo: spring-boot-api (CRUD versionado de workflows, contratos, integrações e validações)
+fonte-de-verdade: build.gradle.kts, src/main/resources/application.yml, src/main/kotlin/com/serviceportal/manager, mongodb-manager/init-mongo.js
+atualizado-em: 2026-11-07
+-->
 
-## Stack
+## Resumo
 
-| Item | Versão |
-|---|---|
-| Kotlin | 2.0.21 |
-| Java toolchain | 21 (LTS) |
-| Spring Boot | 3.4.5 (LTS) |
-| Build | Gradle Kotlin DSL |
-| Banco de dados | MongoDB 7 (`spring-boot-starter-data-mongodb`) |
-| Segurança | JWT HS512 via jjwt 0.12.6 — autenticação interna server-to-server |
-| Porta | 8082 |
+Dono das collections `workflows`, `integrations`, `contracts` e `validations` no MongoDB. Guarda o YAML do fluxo como texto bruto e só faz validação leve (`flow.id`, `flow.version`, `flow.contract`, ao menos uma integração). O parse profundo é do `generic-orchestrator`, que busca o YAML aqui. Quando um fluxo muda ou é desativado, o Manager invalida o cache do orquestrador.
 
----
+<!-- gen:size -->Tamanho: 32 arquivos .kt em `src/main`, 20 em `src/test`.<!-- /gen:size -->
 
-## Responsabilidade
-
-O Manager é o **dono da collection `workflows`** no MongoDB. Ele:
-
-- Persiste e gerencia o ciclo de vida de workflows (CRUD via YAML)
-- Serve o YAML bruto para o orquestrador (`GET .../yaml`)
-- Serve a lista de workflows ativos para o warm-up do cache do orquestrador (`?status=active`)
-
-O parse profundo do YAML (validação de integrações, contrato, etc.) é responsabilidade do orquestrador — o Manager faz apenas validação leve (extração de `flowId`, `version`, `description`, `active`).
-
----
+Stack: Kotlin 2.0.21, Java 21, Spring Boot 3.4.5 (não atualizar), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.12.6), Spotless/ktlint. Porta `SERVER_PORT` (8082).
 
 ## Endpoints
 
-### Público (sem token)
+Base do código: `src/main/kotlin/com/serviceportal/manager/`.
 
-| Método | Path | Descrição |
+| Rota | Auth | Onde |
 |---|---|---|
-| `POST` | `/api/auth/tokens` | Gera JWT (admin/admin) — retorna 201 |
-| `GET` | `/actuator/health` | Health check |
-| `GET` | `/actuator/info` | Info da aplicação |
-| `GET` | `/actuator/metrics` | Métricas |
+| `POST /api/auth/tokens` (201, `{token, expiresIn}`) | público | `security/AuthController` |
+| `/actuator/**`, `/swagger-ui.html`, `/v3/api-docs/**` | público | `security/SecurityConfig` |
+| `/manager/flows`: `POST`, `GET` (paginado; `?status=active` devolve lista sem paginação) | JWT | `controller/FlowController` → `service/FlowDocumentService` |
+| `/manager/flows/{flowId}/versions` (`?status=active\|inactive`) | JWT | mesmo controller |
+| `/manager/flows/{flowId}/versions/{version}`: `GET`, `PUT` (201 + `Location`), `DELETE` (204) | JWT | mesmo controller |
+| `GET /manager/flows/{flowId}/versions/{version}/yaml` e `/examples` | JWT | mesmo controller (`getYaml`, `getExample`) |
+| `/manager/contracts`, `/manager/integrations`, `/manager/validations` (mesmo desenho, versão inteira) | JWT | `controller/ContractController`, `IntegrationController`, `ValidationController` |
 
-### Protegidos (Bearer JWT obrigatório)
+Erros: `FlowNotFoundException` (404, `FLOW_NOT_FOUND`), `InvalidFlowDefinitionException` (400, `INVALID_FLOW`), `FlowAlreadyExistsException` (409, `FLOW_ALREADY_EXISTS`). Contrato, integração e validação têm trios equivalentes. Tudo em `exception/GlobalExceptionHandler`.
 
-| Método | Path | Descrição |
-|---|---|---|
-| `POST` | `/manager/flows` | Cria workflow (body: YAML como texto) — retorna 201 |
-| `GET` | `/manager/flows` | Lista paginada (`?page=&size=&sort=`) — sem `yamlContent` |
-| `GET` | `/manager/flows?status=active` | Lista de ativos (sem paginação) — consumida pelo orquestrador |
-| `GET` | `/manager/flows/{flowId}/versions/{version}` | Metadados do workflow — sem `yamlContent` |
-| `GET` | `/manager/flows/{flowId}/versions/{version}/yaml` | YAML bruto (`application/x-yaml`) |
-| `PUT` | `/manager/flows/{flowId}/versions/{version}` | Atualiza workflow (rejeita 400 se id/version divergem do YAML) |
-| `DELETE` | `/manager/flows/{flowId}/versions/{version}` | Soft-delete (`active=false`), idempotente |
+## Fluxo de um PUT em workflow
 
----
+1. `FlowController.update` chama `FlowDocumentService.update`.
+2. `YamlValidationService.extractMetadata` valida o YAML; `flow.id` deve igualar o `flowId` do path. A versão do path não é comparada com a do YAML.
+3. Carrega o documento com `findByFlowIdAndVersionWithYaml`.
+4. `VersioningService.detectChangeType`: `contract` mudou é MAJOR, `integrations` mudou é MINOR, o resto é PATCH.
+5. Grava um documento novo com a versão calculada. O antigo permanece. Se a versão nova já existir, 409.
+6. `OrchestratorCacheClient.evictWorkflow` invalida a versão antiga no orquestrador. Falha só gera log.
 
-## Schema do documento MongoDB
+Contrato, integração e validação usam versão inteira: `update` grava `version + 1` via `SequentialVersioningService`.
 
-Collection: `workflows` | Database: `service-portal-manager`
+## Mapa
 
-```json
-{
-  "_id": "ObjectId",
-  "flowId": "create-order-v1",
-  "version": "1.0.0",
-  "description": "Order creation flow",
-  "active": true,
-  "yamlContent": "flow:\n  id: ...",
-  "createdAt": "ISODate",
-  "updatedAt": "ISODate",
-  "_class": "com.serviceportal.manager.domain.FlowDocument"
-}
-```
+| Caminho | Papel |
+|---|---|
+| `ManagerApplication` | Entry point |
+| `controller/*` | REST e anotações OpenAPI |
+| `service/FlowDocumentService` | CRUD de workflow, exemplo de payload, soft-delete |
+| `service/{Contract,Integration,Validation}Service` | CRUD versionado dos três recursos |
+| `service/YamlValidationService` | Metadados do YAML e campos do contrato |
+| `service/VersioningService`, `service/SequentialVersioningService` | SemVer do workflow; versão inteira dos demais |
+| `repository/*` | Interfaces Mongo. `FlowDocumentRepository` usa projeção sem `yamlContent` |
+| `domain/*` | `@Document` das 4 collections e `ResourceRef` |
+| `dto/*` | DTOs de request e response (`Dtos.kt`) |
+| `security/*` | `JwtService`, `JwtAuthenticationFilter`, `SecurityConfig`, `AuthController` |
+| `client/*`, `config/OrchestratorClientConfig` | Login e invalidação de cache no orquestrador, bean `orchestratorRestClient` |
+| `config/OpenApiConfig`, `exception/*` | Swagger e tratamento de erros |
 
-**Índice composto único** em `flowId` + `version` criado pelo script `mongodb-manager/init-mongo.js` (neste repositório). O `auto-index-creation` do Spring Data está desabilitado (padrão do Spring Boot 3) — o init-mongo.js é a fonte de verdade do índice.
+Recursos: `src/main/resources/application.yml`, `application-docker.yml`, `mongodb-manager/init-mongo.js`, `docker-compose.yml`.
 
-**Atenção:** `yamlContent` é excluído por projeção MongoDB nas queries de listagem e `get` para economizar banda. Apenas `findByFlowIdAndVersionWithYaml` traz o campo completo — use-o sempre que for fazer `repository.save()` após mutação, caso contrário o save sobrescreve o documento inteiro zerando `yamlContent`.
+## Quero mudar... onde
 
----
+| Mudança | Onde |
+|---|---|
+| Validação leve do YAML | `service/YamlValidationService.extractMetadata` |
+| Regra de bump de versão | `VersioningService.detectChangeType` e `calculateNextVersion` |
+| Exemplo de payload do contrato | `FlowDocumentService.getExample` (mapa tipo para valor de exemplo) |
+| Nova rota ou filtro de workflow | `controller/FlowController` e `repository/FlowDocumentRepository` |
+| Campo novo em workflow | `domain/FlowDocument`, `FlowSummaryDto` em `dto/Dtos.kt`, `FlowDocumentService.create` e `update` |
+| Campo novo em integração | `domain/IntegrationDocument`, `IntegrationRequest` e `IntegrationDto`, `IntegrationService.create` e `update` |
+| Novo erro HTTP | classe em `exception/Exceptions.kt` e `@ExceptionHandler` em `GlobalExceptionHandler` |
+| Rota pública ou 401/403 | `security/SecurityConfig` |
+| Credenciais ou expiração do JWT | `manager.security.*` no `application.yml`, `security/JwtService`, `AuthController` |
+| Invalidação de cache do orquestrador | `client/OrchestratorCacheClient`, `client/OrchestratorAuthService` |
+| Índice ou dados de exemplo no Mongo | `mongodb-manager/init-mongo.js` |
+| Novo tipo de recurso versionado | `domain`, `repository`, `service`, `controller` por analogia com `Contract*` e exceções novas |
 
-## Inicialização do MongoDB
+## Integrações e config
 
-O arquivo `mongodb-manager/init-mongo.js` cria o database `service-portal-manager`
-com as collections `workflows`, `integrations`, `contracts` e `validations`, cada
-uma com índice único composto `(id, version)`. Também popula **dados de exemplo**
-(workflow `create-order-v1` + contract/integrations/validations referenciados).
+- MongoDB: `MONGODB_URI`, `MONGODB_DATABASE`. Database `service-portal-manager`.
+- Orquestrador: `ORCHESTRATOR_URL` (`http://localhost:8080`), `ORCHESTRATOR_ADMIN_USERNAME`, `ORCHESTRATOR_ADMIN_PASSWORD`. Rotas usadas: `POST /api/auth/tokens` e `DELETE /api/admin/cache/workflows/{flowId}/versions/{version}`. O token fica em memória e renova 60 s antes de expirar.
+- JWT: `JWT_SECRET` (trocar em produção), `JWT_EXPIRATION` (3600), `MANAGER_ADMIN_USERNAME` e `MANAGER_ADMIN_PASSWORD` (`admin`).
+- Demais variáveis (SBA, OTLP, actuator): `src/main/resources/application.yml`. Stack completa: `../docker-compose-service-portal.yml`.
 
-Este script é montado em `/docker-entrypoint-initdb.d/` no container MongoDB e
-executado automaticamente na primeira inicialização (volume vazio). Para reexecutá-lo
-após mudanças, é necessário destruir o volume: `docker compose down -v && docker compose up -d`.
-
----
-
-## Respostas de erro
-
-| Situação | HTTP | Código no body |
-|---|---|---|
-| YAML sem `flowId`/`version` | 400 | `INVALID_FLOW` |
-| `flowId`/`version` do path divergem do YAML | 400 | `INVALID_FLOW` |
-| Workflow não encontrado | 404 | `FLOW_NOT_FOUND` |
-| Workflow já existe (`flowId`+`version`) | 409 | `FLOW_ALREADY_EXISTS` |
-
----
-
-## Como rodar localmente
-
-### Pré-requisitos
-
-- Java 21 instalado
-- Docker + Docker Compose
-
-### Opção 1 — App no host, MongoDB via Docker
+## Comandos
 
 ```bash
-# Na raiz do repositório
-docker compose -f docker-compose-service-portal.yml up -d mongodb
-
-cd service-portal-manager
-./gradlew bootRun
+docker compose up -d && ./gradlew bootRun   # só o MongoDB (compose local) e o app
+./gradlew test                              # unitários; relatório JaCoCo ao final
+./gradlew jacocoTestCoverageVerification    # gate >= 95% de instruções
+./gradlew spotlessApply                     # antes de commit
 ```
 
-### Opção 2 — Stack completa containerizada
+## Armadilhas
 
-```bash
-# Na raiz do repositório
-docker compose -f docker-compose-service-portal.yml up -d
-```
-
----
-
-## Como testar
-
-```bash
-cd service-portal-manager
-
-# Testes unitários (gera relatório JaCoCo automaticamente ao final)
-./gradlew test
-# Relatório em: build/reports/jacoco/jacocoTestReport/html/index.html
-
-# Verificação do gate de cobertura
-./gradlew jacocoTestCoverageVerification
-
-# Build sem testes
-./gradlew bootJar -x test
-
-# Build da imagem Docker
-docker build -t service-portal-manager:local .
-```
-
-### Gate de cobertura JaCoCo
-
-Gate ≥ 95% INSTRUCTION sobre todo o código de aplicação, excluindo:
-- `ManagerApplication` (apenas o `main`)
-- `dto/**` (holders sem lógica)
-- `exception/**` (apenas declarações de classe)
-
-Cobertura atual: **96% INSTRUCTION**. O relatório é gerado automaticamente ao final de `test` (via `finalizedBy`).
-
----
-
-## Estrutura de pacotes relevante
-
-```
-src/main/kotlin/com/serviceportal/manager/
-├── controller/
-│   └── FlowController                 # CRUD + /yaml + listagem ?status=active
-├── service/
-│   ├── FlowDocumentService            # create/update/get/listAll/listActive/deactivate/getYaml
-│   └── YamlValidationService          # validação leve: extrai flowId, version, description, active
-├── repository/
-│   └── FlowDocumentRepository         # queries MongoDB com projeção: leve vs WithYaml
-├── domain/
-│   └── FlowDocument                   # @Document("workflows") — sem @CompoundIndexes
-├── security/
-│   ├── AuthController                 # POST /api/auth/tokens
-│   ├── JwtService                     # geração e validação JWT HS512
-│   ├── JwtAuthenticationFilter        # filtro de Bearer token
-│   └── SecurityConfig                 # libera /api/auth/tokens e actuator; protege o resto
-├── exception/
-│   ├── Exceptions.kt                  # FlowNotFoundException, InvalidFlowDefinitionException, FlowAlreadyExistsException
-│   └── GlobalExceptionHandler         # mapeia exceções → HTTP com código de erro no body
-└── dto/
-    └── Dtos.kt                        # FlowSummaryDto (sem yamlContent), FlowMetadata
-```
-
----
-
-## Decisões de design
-
-**`yamlContent` como string.** O YAML original é armazenado como string bruta — não parseado em schema próprio. O parse tipado (integrações, contrato, templates) é feito pelo orquestrador. Alternativas como GridFS ou schema normalizado foram descartadas por serem desnecessárias para o volume atual.
-
-**Projeção MongoDB em vez de DTO parcial.** Queries de listagem e `get` usam `@Query(fields = "{ 'yamlContent': 0 }")` para excluir o campo no banco. `findByFlowIdAndVersionWithYaml` é o único método que retorna o documento completo — use-o apenas quando for ler ou modificar `yamlContent`.
-
-**Nunca chamar `save()` em doc sem projeção WithYaml.** Um doc carregado por query leve tem `yamlContent = null`. Chamar `repository.save(doc)` nesse estado sobrescreve o documento inteiro e apaga `yamlContent` no banco.
-
-**Soft-delete.** `DELETE` não remove o documento — seta `active = false` e é idempotente. O índice de unicidade permanece intacto: criar um workflow com o mesmo `flowId`+`version` após o delete resulta em 409.
-
-**Índice de unicidade gerenciado externamente.** Não há `@CompoundIndexes` no `FlowDocument` — o Spring Boot 3 não cria índices automaticamente por padrão. O índice composto único (`flowId` + `version`) é criado pelo `mongodb-manager/init-mongo.js` (neste repositório).
-
-**Validação leve no Manager.** `YamlValidationService` extrai apenas os metadados mínimos para persistência. Não valida integrações, templates, contratos nem tipos de campo — isso fica no orquestrador.
-
----
-
-## Variáveis de ambiente
-
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `SERVER_PORT` | `8082` | Porta do servidor |
-| `SPRING_PROFILES_ACTIVE` | `` | Perfil Spring ativo |
-| `MONGODB_URI` | `mongodb://localhost:27017/service-portal-manager` | URI de conexão com o MongoDB |
-| `MONGODB_DATABASE` | `service-portal-manager` | Nome do banco de dados |
-| `JWT_SECRET` | (dev secret) | Segredo HS512 — **trocar em produção** |
-| `JWT_EXPIRATION` | `3600` | Expiração do JWT em segundos |
-| `JWT_ISSUER` | `service-portal-manager` | Claim `iss` do token gerado |
-| `MANAGER_ADMIN_USERNAME` | `admin` | Login para `POST /api/auth/tokens` |
-| `MANAGER_ADMIN_PASSWORD` | `admin` | Senha para `POST /api/auth/tokens` |
-
----
-
-## Restrições
-
-- Kotlin 2.0 + Java 21 LTS, Spring Boot 3.4.5 LTS — não atualizar versões
-- Gradle com Kotlin DSL
-- Não adicionar `@CompoundIndexes` no `FlowDocument` — o init-mongo.js é a fonte de verdade do índice
-- Não chamar `repository.save()` em documentos carregados por queries sem projeção `WithYaml`
-- Soft-delete apenas — sem remoção física de documentos
+- Não atualizar Kotlin 2.0.21, Java 21 nem Spring Boot 3.4.5.
+- Consultas leves de workflow excluem `yamlContent` por projeção. Para `save()` use sempre `findByFlowIdAndVersionWithYaml`, senão o save apaga o YAML.
+- O Spring Boot 3 não cria índices sozinho e não há `@CompoundIndexes`. O índice único `(id, version)` vem de `mongodb-manager/init-mongo.js`, que só roda com volume vazio (`docker compose down -v` para reaplicar).
+- `DELETE` é soft-delete (`active=false`) e idempotente. Recriar o mesmo `flowId` e `version` dá 409. `GET /manager/flows` lista só ativos.
+- O `PUT` de workflow cria versão nova em vez de alterar a existente.
+- O `ObjectMapper` de `YamlValidationService` precisa de `registerKotlinModule()`. Sem ele a conversão para `ContractField` falha em silêncio e `getExample` devolve exemplo vazio.
+- A invalidação de cache engole exceções: se o orquestrador estiver fora, o cache dele fica velho.
+- Todo `.kt` precisa do header de `license-header.txt`, senão o Spotless falha. O arquivo é uma cópia do `license-header.txt` da raiz do monorepo: mantenha igual.
+- O gate JaCoCo exclui `ManagerApplication`, `OpenApiConfig`, `dto/**`, `exception/**` e `domain/**`. O resto precisa de teste.

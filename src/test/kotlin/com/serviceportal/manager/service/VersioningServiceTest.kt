@@ -23,7 +23,9 @@
  */
 package com.serviceportal.manager.service
 
+import com.serviceportal.manager.exception.InvalidFlowDefinitionException
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 
@@ -184,5 +186,28 @@ class VersioningServiceTest {
         val updated = service.updateVersionInYaml(yamlBase, "2.0.0")
         assertThat(updated).contains("2.0.0")
         assertThat(updated).doesNotContain("\"1.0.0\"")
+    }
+
+    @Test
+    @DisplayName("calculateNextVersion treats a malformed version as 0.0.0")
+    fun calculateFromMalformed() {
+        assertThat(service.calculateNextVersion("abc", VersioningService.ChangeType.MAJOR)).isEqualTo("1.0.0")
+        assertThat(service.calculateNextVersion("1", VersioningService.ChangeType.MINOR)).isEqualTo("1.1.0")
+        assertThat(service.calculateNextVersion("1.2", VersioningService.ChangeType.PATCH)).isEqualTo("1.2.1")
+    }
+
+    @Test
+    @DisplayName("updateVersionInYaml returns the YAML unchanged when there is no flow key")
+    fun updateVersionWithoutFlow() {
+        val yaml = "other:\n  id: x\n"
+        assertThat(service.updateVersionInYaml(yaml, "2.0.0")).isEqualTo(yaml)
+    }
+
+    @Test
+    @DisplayName("detectChangeType rejects a YAML without the flow root key")
+    fun detectWithoutFlow() {
+        assertThatThrownBy { service.detectChangeType("other: 1", yamlBase) }
+            .isInstanceOf(InvalidFlowDefinitionException::class.java)
+            .hasMessageContaining("flow")
     }
 }
