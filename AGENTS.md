@@ -15,7 +15,7 @@ Dono das collections `workflows`, `integrations`, `contracts` e `validations` no
 
 <!-- gen:size -->Tamanho: 35 arquivos .kt em `src/main`, 28 em `src/test`.<!-- /gen:size -->
 
-Stack: Kotlin 2.2.21, Java 21, Spring Boot 4.0.9 (em migração para 4.1.x, ver `../docs/plans/PLAN-spring-boot-upgrade.md`; suba uma linha por vez), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.13.0), Spotless/ktlint. Porta `SERVER_PORT` (8082).
+Stack: Kotlin 2.3.21, Java 21, Spring Boot 4.1.2 (plano de upgrade concluído em `../docs/plans/PLAN-spring-boot-upgrade.md`; próximas subidas seguem o mesmo método, uma linha por vez), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.13.0), Spotless/ktlint. Porta `SERVER_PORT` (8082).
 
 ## Endpoints
 
