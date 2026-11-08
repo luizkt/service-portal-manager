@@ -63,7 +63,7 @@ management:
         enabled: true
   tracing:
     sampling:
-      probability: 1.0
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
@@ -86,4 +86,4 @@ springdoc:
 
 logging:
   level:
-    com.serviceportal.manager: DEBUG
+    com.serviceportal.manager: ${LOG_LEVEL_APP:DEBUG}
