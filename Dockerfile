@@ -26,16 +26,15 @@ ENV MONGODB_URI=mongodb://localhost:27017/service-portal-manager \
     MONGODB_DATABASE=service-portal-manager
 
 # ── Segurança ──────────────────────────────────────────────────────────────────
-ENV JWT_SECRET=CHANGE_ME_PLEASE_THIS_IS_A_DEV_ONLY_SECRET_AT_LEAST_64_CHARS_LONG_FOR_HS512 \
-    JWT_EXPIRATION=3600 \
+# Segredos (JWT_SECRET, MANAGER_ADMIN_PASSWORD, ACTUATOR_PASSWORD, ORCHESTRATOR_ADMIN_PASSWORD, SBA_PASSWORD)
+# NAO ficam na imagem: injete em runtime.
+ENV JWT_EXPIRATION=3600 \
     JWT_ISSUER=service-portal-manager \
-    MANAGER_ADMIN_USERNAME=admin \
-    MANAGER_ADMIN_PASSWORD=admin
+    MANAGER_ADMIN_USERNAME=admin
 
 # ── Orquestrador (invalidação de cache cross-service) ────────────────────────────
 ENV ORCHESTRATOR_URL=http://localhost:8080 \
-    ORCHESTRATOR_ADMIN_USERNAME=admin \
-    ORCHESTRATOR_ADMIN_PASSWORD=admin
+    ORCHESTRATOR_ADMIN_USERNAME=admin
 
 # ── Servidor ───────────────────────────────────────────────────────────────────
 ENV SERVER_PORT=8082 \

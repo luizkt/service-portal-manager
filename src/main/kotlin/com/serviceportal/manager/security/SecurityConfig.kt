@@ -23,8 +23,10 @@
  */
 package com.serviceportal.manager.security
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.annotation.Order
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -35,7 +37,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 class SecurityConfig(private val jwtAuthFilter: JwtAuthenticationFilter) {
+    /** O filtro JWT pertence só à chain da API; não registrar também como filtro de servlet. */
     @Bean
+    fun jwtFilterRegistration(filter: JwtAuthenticationFilter): FilterRegistrationBean<JwtAuthenticationFilter> =
+        FilterRegistrationBean(filter).apply { isEnabled = false }
+
+    @Bean
+    @Order(2)
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .csrf { it.disable() }
@@ -43,7 +51,6 @@ class SecurityConfig(private val jwtAuthFilter: JwtAuthenticationFilter) {
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
-                    .requestMatchers("/actuator/**").permitAll()
                     .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs", "/v3/api-docs/**").permitAll()
                     .anyRequest().authenticated()
             }
