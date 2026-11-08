@@ -48,6 +48,8 @@ orchestrator:
   url: ${ORCHESTRATOR_URL:http://localhost:8080}
   admin-username: ${ORCHESTRATOR_ADMIN_USERNAME:admin}
   admin-password: ${ORCHESTRATOR_ADMIN_PASSWORD:admin}
+  connect-timeout-ms: ${ORCHESTRATOR_CONNECT_TIMEOUT_MS:2000}
+  read-timeout-ms: ${ORCHESTRATOR_READ_TIMEOUT_MS:5000}
 
 management:
   endpoints:

@@ -23,6 +23,7 @@
  */
 package com.serviceportal.manager.client
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
@@ -30,11 +31,14 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient
 import java.time.Instant
+import java.util.Base64
 
 /**
  * Auth server-to-server contra o generic-orchestrator. Mantém o JWT em memória
- * e renova quando faltar menos de 60s para expirar (TTL assumido de 3600s, mesmo
- * padrão do orquestrador). Espelha o `ManagerAuthService` do orquestrador.
+ * e renova quando faltar menos de 60s para expirar. A expiração vem do claim `exp` do
+ * JWT (decodificado sem verificar assinatura: só dirige o cache), senão de `expiresIn`
+ * da resposta de login, senão 3600s. [invalidate] descarta o token que o orquestrador
+ * rejeitou com 401. Espelha o `ManagerAuthService` do orquestrador.
  */
 @Service
 class OrchestratorAuthService(
@@ -47,6 +51,15 @@ class OrchestratorAuthService(
     @Volatile private var token: String? = null
 
     @Volatile private var expiry: Instant = Instant.EPOCH
+
+    /** Descarta o token em cache, mas só se ainda for [failedToken] (outro thread pode já ter renovado). */
+    @Synchronized
+    fun invalidate(failedToken: String) {
+        if (token == failedToken) {
+            token = null
+            expiry = Instant.EPOCH
+        }
+    }
 
     @Synchronized
     fun token(): String {
@@ -67,8 +80,33 @@ class OrchestratorAuthService(
                 .body(TokenResponse::class.java)
                 ?: throw IllegalStateException("Orchestrator returned an empty token response")
         token = response.token
-        expiry = Instant.now().plusSeconds(3600)
+        expiry = resolveExpiry(response)
     }
 
-    data class TokenResponse(val token: String? = null, val type: String? = null)
+    private fun resolveExpiry(response: TokenResponse): Instant {
+        val now = Instant.now()
+        val fromJwt = response.token?.let { jwtExpiry(it) }
+        if (fromJwt != null) return fromJwt
+        val ttl = response.expiresIn?.takeIf { it > 0 } ?: DEFAULT_TTL_SECONDS
+        return now.plusSeconds(ttl)
+    }
+
+    private fun jwtExpiry(jwt: String): Instant? =
+        try {
+            val payload = Base64.getUrlDecoder().decode(jwt.split('.')[1])
+            mapper.readTree(payload).get("exp")?.takeIf { it.canConvertToLong() }?.let { Instant.ofEpochSecond(it.asLong()) }
+        } catch (_: Exception) {
+            null
+        }
+
+    data class TokenResponse(
+        val token: String? = null,
+        val type: String? = null,
+        val expiresIn: Long? = null,
+    )
+
+    private companion object {
+        const val DEFAULT_TTL_SECONDS = 3600L
+        val mapper = ObjectMapper()
+    }
 }

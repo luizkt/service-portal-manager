@@ -28,6 +28,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.serviceportal.manager.domain.ContractField
 import com.serviceportal.manager.exception.InvalidFlowDefinitionException
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 /**
@@ -39,6 +40,8 @@ import org.springframework.stereotype.Service
  */
 @Service
 class YamlValidationService {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     // O módulo Kotlin é necessário para montar o data class ContractField (sem ele a conversão falha em silêncio).
     private val mapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
 
@@ -54,7 +57,8 @@ class YamlValidationService {
         val root =
             try {
                 mapper.readValue(yamlContent, Map::class.java) as Map<String, Any?>
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                log.warn("YAML ilegível ao extrair campos do contrato: {}", e.firstLine())
                 return emptyList()
             }
         val flow = root["flow"] as? Map<String, Any?> ?: return emptyList()
@@ -65,11 +69,15 @@ class YamlValidationService {
         return rawFields.mapNotNull { fieldMap ->
             try {
                 mapper.convertValue(fieldMap, ContractField::class.java)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                log.warn("Campo do contrato ignorado (name={}): {}", fieldMap["name"], e.firstLine())
                 null
             }
         }
     }
+
+    /** Só a primeira linha da mensagem: evita despejar trechos do YAML no log. */
+    private fun Exception.firstLine(): String? = message?.lineSequence()?.firstOrNull()
 
     fun extractMetadata(yamlContent: String): FlowMetadata {
         if (yamlContent.isBlank()) {
