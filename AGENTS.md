@@ -92,6 +92,7 @@ Recursos: `src/main/resources/application.yml`, `application-docker.yml`, `mongo
 - JWT: `JWT_SECRET` (sem valor na imagem; o default de dev do `application.yml` é sinalizado pelo guard), `JWT_EXPIRATION` (3600), `MANAGER_ADMIN_USERNAME` e `MANAGER_ADMIN_PASSWORD` (`admin`, só dev; comparação em tempo constante no `AuthController`).
 - Actuator: públicos `/actuator/health/**`, `/actuator/info`, `/actuator/prometheus` (o Prometheus coleta sem credenciais). O resto exige HTTP Basic do usuário com role `ACTUATOR`: `ACTUATOR_USERNAME` (default `actuator`) e `ACTUATOR_PASSWORD` (SEM default: vazio = usuário inexistente = 401 sempre). `heapdump` não é exposto; `health` mostra detalhes só `when-authorized`. O SBA lê os endpoints pelas metadata `spring.boot.admin.client.instance.metadata.user.name`/`.password`, preenchidas com as mesmas variáveis.
 - Guard de segredos: `SECURITY_STRICT=true` ou profile `prod` faz a subida falhar se `JWT_SECRET` (`CHANGE_ME...`), `MANAGER_ADMIN_*` (`admin`/`admin`), `ORCHESTRATOR_ADMIN_PASSWORD=admin` ou `SBA_PASSWORD=admin` estiverem nos defaults; nos demais perfis só loga WARN com os nomes (nunca os valores).
+- Tracing: `OTEL_EXPORTER_OTLP_ENDPOINT`, `TRACING_SAMPLING_PROBABILITY` (1.0; baixe em produção). Log da aplicação: `LOG_LEVEL_APP` (DEBUG; use INFO em produção).
 - Demais variáveis (SBA, OTLP, actuator): `src/main/resources/application.yml`. Stack completa: `../docker-compose-service-portal.yml`.
 
 ## Comandos
