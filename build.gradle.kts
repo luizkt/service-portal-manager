@@ -8,7 +8,7 @@ plugins {
     kotlin("plugin.spring") version "2.0.21"
     id("org.springframework.boot") version "3.4.5"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.diffplug.spotless") version "6.25.0"
+    id("com.diffplug.spotless") version "8.11.0"
 }
 
 group = "com.serviceportal"
@@ -22,11 +22,11 @@ java {
 
 repositories { mavenCentral() }
 
-extra["jjwtVersion"] = "0.12.6"
-extra["sbaVersion"] = "3.4.0"
+extra["jjwtVersion"] = "0.13.0"
+extra["sbaVersion"] = "3.4.7"
 
 dependencies {
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.14")
     implementation("de.codecentric:spring-boot-admin-starter-client:${property("sbaVersion")}")
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
@@ -54,7 +54,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("io.mockk:mockk:1.14.12")
     testImplementation("com.ninja-squad:springmockk:4.0.2")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -70,7 +70,7 @@ kotlin {
 spotless {
     kotlin {
         licenseHeaderFile(file("${projectDir}/license-header.txt"))
-        ktlint()
+        ktlint("1.0.1")
         targetExclude("**/build/**")
     }
 }
