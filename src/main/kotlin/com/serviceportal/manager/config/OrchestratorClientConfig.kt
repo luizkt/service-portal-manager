@@ -26,12 +26,18 @@ package com.serviceportal.manager.config
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.web.client.RestClient
+import java.net.http.HttpClient
+import java.time.Duration
 
 /**
  * RestClient síncrono para chamadas server-to-server ao generic-orchestrator
  * (invalidação de cache de workflows). RestClient faz parte do spring-web — não
  * exige WebFlux/Netty, alinhado ao estilo MVC bloqueante do Manager.
+ *
+ * Tem timeouts de conexão e de leitura: a invalidação roda de forma síncrona dentro
+ * do PUT/DELETE de workflow, então um orquestrador lento não pode segurar o usuário.
  */
 @Configuration
 class OrchestratorClientConfig {
@@ -39,5 +45,23 @@ class OrchestratorClientConfig {
     fun orchestratorRestClient(
         builder: RestClient.Builder,
         @Value("\${orchestrator.url:http://localhost:8080}") url: String,
-    ): RestClient = builder.baseUrl(url).build()
+        @Value("\${orchestrator.connect-timeout-ms:2000}") connectTimeoutMs: Long = DEFAULT_CONNECT_TIMEOUT_MS,
+        @Value("\${orchestrator.read-timeout-ms:5000}") readTimeoutMs: Long = DEFAULT_READ_TIMEOUT_MS,
+    ): RestClient {
+        val httpClient =
+            HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofMillis(connectTimeoutMs))
+                .build()
+        val requestFactory =
+            JdkClientHttpRequestFactory(httpClient).apply {
+                setReadTimeout(Duration.ofMillis(readTimeoutMs))
+            }
+        return builder.baseUrl(url).requestFactory(requestFactory).build()
+    }
+
+    companion object {
+        const val DEFAULT_CONNECT_TIMEOUT_MS = 2000L
+        const val DEFAULT_READ_TIMEOUT_MS = 5000L
+    }
 }

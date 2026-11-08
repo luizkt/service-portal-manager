@@ -13,7 +13,7 @@ atualizado-em: 2026-11-07
 
 Dono das collections `workflows`, `integrations`, `contracts` e `validations` no MongoDB. Guarda o YAML do fluxo como texto bruto e só faz validação leve (`flow.id`, `flow.version`, `flow.contract`, ao menos uma integração). O parse profundo é do `generic-orchestrator`, que busca o YAML aqui. Quando um fluxo muda ou é desativado, o Manager invalida o cache do orquestrador.
 
-<!-- gen:size -->Tamanho: 32 arquivos .kt em `src/main`, 20 em `src/test`.<!-- /gen:size -->
+<!-- gen:size -->Tamanho: 33 arquivos .kt em `src/main`, 21 em `src/test`.<!-- /gen:size -->
 
 Stack: Kotlin 2.0.21, Java 21, Spring Boot 3.4.5 (não atualizar), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.13.0), Spotless/ktlint. Porta `SERVER_PORT` (8082).
 
@@ -84,6 +84,7 @@ Recursos: `src/main/resources/application.yml`, `application-docker.yml`, `mongo
 
 - MongoDB: `MONGODB_URI`, `MONGODB_DATABASE`. Database `service-portal-manager`.
 - Orquestrador: `ORCHESTRATOR_URL` (`http://localhost:8080`), `ORCHESTRATOR_ADMIN_USERNAME`, `ORCHESTRATOR_ADMIN_PASSWORD`. Rotas usadas: `POST /api/auth/tokens` e `DELETE /api/admin/cache/workflows/{flowId}/versions/{version}`. O token fica em memória e renova 60 s antes de expirar.
+- Timeouts do `RestClient` do orquestrador: `orchestrator.connect-timeout-ms` (`ORCHESTRATOR_CONNECT_TIMEOUT_MS`, 2000) e `orchestrator.read-timeout-ms` (`ORCHESTRATOR_READ_TIMEOUT_MS`, 5000).
 - JWT: `JWT_SECRET` (trocar em produção), `JWT_EXPIRATION` (3600), `MANAGER_ADMIN_USERNAME` e `MANAGER_ADMIN_PASSWORD` (`admin`).
 - Demais variáveis (SBA, OTLP, actuator): `src/main/resources/application.yml`. Stack completa: `../docker-compose-service-portal.yml`.
 
@@ -104,6 +105,6 @@ docker compose up -d && ./gradlew bootRun   # só o MongoDB (compose local) e o 
 - `DELETE` é soft-delete (`active=false`) e idempotente. Recriar o mesmo `flowId` e `version` dá 409. `GET /manager/flows` lista só ativos.
 - O `PUT` de workflow cria versão nova em vez de alterar a existente.
 - O `ObjectMapper` de `YamlValidationService` precisa de `registerKotlinModule()`. Sem ele a conversão para `ContractField` falha em silêncio e `getExample` devolve exemplo vazio.
-- A invalidação de cache engole exceções: se o orquestrador estiver fora, o cache dele fica velho.
+- A invalidação de cache é best-effort e síncrona dentro do PUT/DELETE: engole exceções (se o orquestrador estiver fora, o cache dele fica velho), mas falha rápido pelos timeouts de conexão e leitura.
 - Todo `.kt` precisa do header de `license-header.txt`, senão o Spotless falha. O arquivo é uma cópia do `license-header.txt` da raiz do monorepo: mantenha igual.
 - O gate JaCoCo exclui `ManagerApplication`, `OpenApiConfig`, `dto/**`, `exception/**` e `domain/**`. O resto precisa de teste.
