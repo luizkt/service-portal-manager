@@ -1,0 +1,22 @@
+# Contexto de build do Docker: só o que `gradle bootJar -x test` precisa
+# (gradle/, gradlew, *.kts, src/, license-header.txt).
+.git
+.github
+.claude
+.githooks
+.gradle
+build
+out
+bin
+*.md
+docs
+.idea
+.vscode
+*.iml
+*.swp
+.DS_Store
+# init-mongo.js é usado só pelo docker-compose.yml local (volume), não pela imagem
+mongodb-manager
+docker-compose*.yml
+Dockerfile
+.dockerignore
