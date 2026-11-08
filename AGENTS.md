@@ -15,7 +15,7 @@ Dono das collections `workflows`, `integrations`, `contracts` e `validations` no
 
 <!-- gen:size -->Tamanho: 35 arquivos .kt em `src/main`, 28 em `src/test`.<!-- /gen:size -->
 
-Stack: Kotlin 2.0.21, Java 21, Spring Boot 3.4.5 (não atualizar), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.13.0), Spotless/ktlint. Porta `SERVER_PORT` (8082).
+Stack: Kotlin 2.0.21, Java 21, Spring Boot 3.4.13 (em migração para 4.1.x, ver `../docs/plans/PLAN-spring-boot-upgrade.md`; suba uma linha por vez), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.13.0), Spotless/ktlint. Porta `SERVER_PORT` (8082).
 
 ## Endpoints
 
@@ -109,7 +109,7 @@ docker compose up -d && ./gradlew bootRun   # só o MongoDB (compose local) e o 
 - Segredos nunca em `ENV` do Dockerfile: injete em runtime (compose/secret). Rota nova de actuator fora de health, info e prometheus fica protegida por padrão; não volte a liberar `/actuator/**` nem exponha `heapdump` (contém o `JWT_SECRET`).
 - O `JwtAuthenticationFilter` é `@Component`: o registro de servlet fica desligado em `SecurityConfig` (`FilterRegistrationBean`) para rodar só na chain da API; um Bearer não abre o actuator.
 - Testes que leem `/actuator/prometheus` com MockMvc precisam de `@AutoConfigureObservability` (o `@SpringBootTest` desliga o export de métricas).
-- Não atualizar Kotlin 2.0.21, Java 21 nem Spring Boot 3.4.5.
+- Não atualizar Java 21. Kotlin 2.0.21 e Spring Boot só sobem pelos marcos do plano de upgrade (o Boot 4 exige Kotlin 2.2).
 - Consultas leves de workflow excluem `yamlContent` por projeção. Para `save()` use sempre `findByFlowIdAndVersionWithYaml`, senão o save apaga o YAML.
 - O Spring Boot 3 não cria índices sozinho e não há `@CompoundIndexes`. O índice único `(id, version)` vem de `mongodb-manager/init-mongo.js`, que só roda com volume vazio (`docker compose down -v` para reaplicar).
 - `DELETE` é soft-delete (`active=false`) e idempotente. Recriar o mesmo `flowId` e `version` dá 409. `GET /manager/flows` lista só ativos.
