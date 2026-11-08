@@ -13,7 +13,7 @@ atualizado-em: 2026-11-07
 
 Dono das collections `workflows`, `integrations`, `contracts` e `validations` no MongoDB. Guarda o YAML do fluxo como texto bruto e só faz validação leve (`flow.id`, `flow.version`, `flow.contract`, ao menos uma integração). O parse profundo é do `generic-orchestrator`, que busca o YAML aqui. Quando um fluxo muda ou é desativado, o Manager invalida o cache do orquestrador.
 
-<!-- gen:size -->Tamanho: 32 arquivos .kt em `src/main`, 20 em `src/test`.<!-- /gen:size -->
+<!-- gen:size -->Tamanho: 34 arquivos .kt em `src/main`, 22 em `src/test`.<!-- /gen:size -->
 
 Stack: Kotlin 2.0.21, Java 21, Spring Boot 3.4.5 (não atualizar), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.13.0), Spotless/ktlint. Porta `SERVER_PORT` (8082).
 
@@ -24,7 +24,8 @@ Base do código: `src/main/kotlin/com/serviceportal/manager/`.
 | Rota | Auth | Onde |
 |---|---|---|
 | `POST /api/auth/tokens` (201, `{token, expiresIn}`) | público | `security/AuthController` |
-| `/actuator/**`, `/swagger-ui.html`, `/v3/api-docs/**` | público | `security/SecurityConfig` |
+| `/actuator/health/**`, `/actuator/info`, `/actuator/prometheus`, `/swagger-ui.html`, `/v3/api-docs/**` | público | `security/ActuatorSecurityConfig` (actuator), `security/SecurityConfig` (resto) |
+| demais `/actuator/**` (`env`, `loggers`, `threaddump`, `metrics`, `caches`, `beans`) | HTTP Basic, role `ACTUATOR` | `security/ActuatorSecurityConfig` |
 | `/manager/flows`: `POST`, `GET` (paginado; `?status=active` devolve lista sem paginação) | JWT | `controller/FlowController` → `service/FlowDocumentService` |
 | `/manager/flows/{flowId}/versions` (`?status=active\|inactive`) | JWT | mesmo controller |
 | `/manager/flows/{flowId}/versions/{version}`: `GET`, `PUT` (201 + `Location`), `DELETE` (204) | JWT | mesmo controller |
@@ -74,7 +75,9 @@ Recursos: `src/main/resources/application.yml`, `application-docker.yml`, `mongo
 | Campo novo em workflow | `domain/FlowDocument`, `FlowSummaryDto` em `dto/Dtos.kt`, `FlowDocumentService.create` e `update` |
 | Campo novo em integração | `domain/IntegrationDocument`, `IntegrationRequest` e `IntegrationDto`, `IntegrationService.create` e `update` |
 | Novo erro HTTP | classe em `exception/Exceptions.kt` e `@ExceptionHandler` em `GlobalExceptionHandler` |
-| Rota pública ou 401/403 | `security/SecurityConfig` |
+| Rota pública ou 401/403 da API | `security/SecurityConfig` (chain JWT, `@Order(2)`) |
+| Segurança do actuator | `security/ActuatorSecurityConfig` (chain Basic, `@Order(1)`, só `/actuator/**`) |
+| Defaults inseguros | `security/SecurityDefaultsGuard` (WARN; falha em `prod`/`strict`) |
 | Credenciais ou expiração do JWT | `manager.security.*` no `application.yml`, `security/JwtService`, `AuthController` |
 | Invalidação de cache do orquestrador | `client/OrchestratorCacheClient`, `client/OrchestratorAuthService` |
 | Índice ou dados de exemplo no Mongo | `mongodb-manager/init-mongo.js` |
@@ -84,7 +87,9 @@ Recursos: `src/main/resources/application.yml`, `application-docker.yml`, `mongo
 
 - MongoDB: `MONGODB_URI`, `MONGODB_DATABASE`. Database `service-portal-manager`.
 - Orquestrador: `ORCHESTRATOR_URL` (`http://localhost:8080`), `ORCHESTRATOR_ADMIN_USERNAME`, `ORCHESTRATOR_ADMIN_PASSWORD`. Rotas usadas: `POST /api/auth/tokens` e `DELETE /api/admin/cache/workflows/{flowId}/versions/{version}`. O token fica em memória e renova 60 s antes de expirar.
-- JWT: `JWT_SECRET` (trocar em produção), `JWT_EXPIRATION` (3600), `MANAGER_ADMIN_USERNAME` e `MANAGER_ADMIN_PASSWORD` (`admin`).
+- JWT: `JWT_SECRET` (sem valor na imagem; o default de dev do `application.yml` é sinalizado pelo guard), `JWT_EXPIRATION` (3600), `MANAGER_ADMIN_USERNAME` e `MANAGER_ADMIN_PASSWORD` (`admin`, só dev; comparação em tempo constante no `AuthController`).
+- Actuator: públicos `/actuator/health/**`, `/actuator/info`, `/actuator/prometheus` (o Prometheus coleta sem credenciais). O resto exige HTTP Basic do usuário com role `ACTUATOR`: `ACTUATOR_USERNAME` (default `actuator`) e `ACTUATOR_PASSWORD` (SEM default: vazio = usuário inexistente = 401 sempre). `heapdump` não é exposto; `health` mostra detalhes só `when-authorized`. O SBA lê os endpoints pelas metadata `spring.boot.admin.client.instance.metadata.user.name`/`.password`, preenchidas com as mesmas variáveis.
+- Guard de segredos: `SECURITY_STRICT=true` ou profile `prod` faz a subida falhar se `JWT_SECRET` (`CHANGE_ME...`), `MANAGER_ADMIN_*` (`admin`/`admin`), `ORCHESTRATOR_ADMIN_PASSWORD=admin` ou `SBA_PASSWORD=admin` estiverem nos defaults; nos demais perfis só loga WARN com os nomes (nunca os valores).
 - Demais variáveis (SBA, OTLP, actuator): `src/main/resources/application.yml`. Stack completa: `../docker-compose-service-portal.yml`.
 
 ## Comandos
@@ -98,6 +103,9 @@ docker compose up -d && ./gradlew bootRun   # só o MongoDB (compose local) e o 
 
 ## Armadilhas
 
+- Segredos nunca em `ENV` do Dockerfile: injete em runtime (compose/secret). Rota nova de actuator fora de health, info e prometheus fica protegida por padrão; não volte a liberar `/actuator/**` nem exponha `heapdump` (contém o `JWT_SECRET`).
+- O `JwtAuthenticationFilter` é `@Component`: o registro de servlet fica desligado em `SecurityConfig` (`FilterRegistrationBean`) para rodar só na chain da API; um Bearer não abre o actuator.
+- Testes que leem `/actuator/prometheus` com MockMvc precisam de `@AutoConfigureObservability` (o `@SpringBootTest` desliga o export de métricas).
 - Não atualizar Kotlin 2.0.21, Java 21 nem Spring Boot 3.4.5.
 - Consultas leves de workflow excluem `yamlContent` por projeção. Para `save()` use sempre `findByFlowIdAndVersionWithYaml`, senão o save apaga o YAML.
 - O Spring Boot 3 não cria índices sozinho e não há `@CompoundIndexes`. O índice único `(id, version)` vem de `mongodb-manager/init-mongo.js`, que só roda com volume vazio (`docker compose down -v` para reaplicar).
