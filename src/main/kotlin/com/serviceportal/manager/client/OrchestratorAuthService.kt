@@ -23,13 +23,13 @@
  */
 package com.serviceportal.manager.client
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient
+import tools.jackson.databind.json.JsonMapper
 import java.time.Instant
 import java.util.Base64
 
@@ -107,6 +107,6 @@ class OrchestratorAuthService(
 
     private companion object {
         const val DEFAULT_TTL_SECONDS = 3600L
-        val mapper = ObjectMapper()
+        val mapper = JsonMapper.builder().build()
     }
 }

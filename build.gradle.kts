@@ -4,9 +4,9 @@ import org.springframework.boot.gradle.tasks.bundling.BootJar
 plugins {
     java
     jacoco
-    kotlin("jvm") version "2.0.21"
-    kotlin("plugin.spring") version "2.0.21"
-    id("org.springframework.boot") version "3.5.16"
+    kotlin("jvm") version "2.2.21"
+    kotlin("plugin.spring") version "2.2.21"
+    id("org.springframework.boot") version "4.0.9"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.diffplug.spotless") version "8.11.0"
 }
@@ -23,15 +23,15 @@ java {
 repositories { mavenCentral() }
 
 extra["jjwtVersion"] = "0.13.0"
-extra["sbaVersion"] = "3.5.11"
+extra["sbaVersion"] = "4.0.4"
 
 dependencies {
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.10.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
     implementation("de.codecentric:spring-boot-admin-starter-client:${property("sbaVersion")}")
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -39,23 +39,27 @@ dependencies {
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("tools.jackson.module:jackson-module-kotlin")
 
     // YAML parser para validar o conteúdo dos workflows recebidos
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+    implementation("tools.jackson.dataformat:jackson-dataformat-yaml")
 
     // JWT (mesmo padrão do generic-orchestrator)
     implementation("io.jsonwebtoken:jjwt-api:${property("jjwtVersion")}")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:${property("jjwtVersion")}")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:${property("jjwtVersion")}")
+    // jjwt-jackson 0.13 ainda usa Jackson 2 (pacote com.fasterxml); coexiste com o Jackson 3 do Boot 4
+    runtimeOnly("com.fasterxml.jackson.core:jackson-databind")
 
     // Testes
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-micrometer-metrics-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("io.mockk:mockk:1.14.12")
-    testImplementation("com.ninja-squad:springmockk:4.0.2")
+    testImplementation("com.ninja-squad:springmockk:5.0.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -63,7 +67,7 @@ dependencies {
 kotlin {
     jvmToolchain(21)
     compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict")
+        freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
     }
 }
 
@@ -77,7 +81,7 @@ spotless {
 
 tasks.withType<KotlinCompile> {
     compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict")
+        freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
     }
 }
 

@@ -15,7 +15,7 @@ Dono das collections `workflows`, `integrations`, `contracts` e `validations` no
 
 <!-- gen:size -->Tamanho: 35 arquivos .kt em `src/main`, 28 em `src/test`.<!-- /gen:size -->
 
-Stack: Kotlin 2.0.21, Java 21, Spring Boot 3.5.16 (em migração para 4.1.x, ver `../docs/plans/PLAN-spring-boot-upgrade.md`; suba uma linha por vez), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.13.0), Spotless/ktlint. Porta `SERVER_PORT` (8082).
+Stack: Kotlin 2.2.21, Java 21, Spring Boot 4.0.9 (em migração para 4.1.x, ver `../docs/plans/PLAN-spring-boot-upgrade.md`; suba uma linha por vez), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.13.0), Spotless/ktlint. Porta `SERVER_PORT` (8082).
 
 ## Endpoints
 
@@ -109,9 +109,9 @@ docker compose up -d && ./gradlew bootRun   # só o MongoDB (compose local) e o 
 - Segredos nunca em `ENV` do Dockerfile: injete em runtime (compose/secret). Rota nova de actuator fora de health, info e prometheus fica protegida por padrão; não volte a liberar `/actuator/**` nem exponha `heapdump` (contém o `JWT_SECRET`).
 - O `JwtAuthenticationFilter` é `@Component`: o registro de servlet fica desligado em `SecurityConfig` (`FilterRegistrationBean`) para rodar só na chain da API; um Bearer não abre o actuator.
 - Testes que leem `/actuator/prometheus` com MockMvc precisam de `@AutoConfigureObservability` (o `@SpringBootTest` desliga o export de métricas).
-- Não atualizar Java 21. Kotlin 2.0.21 e Spring Boot só sobem pelos marcos do plano de upgrade (o Boot 4 exige Kotlin 2.2).
+- Não atualizar Java 21. Kotlin e Spring Boot só sobem pelos marcos do plano de upgrade.
 - Consultas leves de workflow excluem `yamlContent` por projeção. Para `save()` use sempre `findByFlowIdAndVersionWithYaml`, senão o save apaga o YAML.
-- O Spring Boot 3 não cria índices sozinho e não há `@CompoundIndexes`. O índice único `(id, version)` vem de `mongodb-manager/init-mongo.js`, que só roda com volume vazio (`docker compose down -v` para reaplicar).
+- O Spring Boot não cria índices sozinho e não há `@CompoundIndexes`. O índice único `(id, version)` vem de `mongodb-manager/init-mongo.js`, que só roda com volume vazio (`docker compose down -v` para reaplicar).
 - `DELETE` é soft-delete (`active=false`) e idempotente. Recriar o mesmo `flowId` e `version` dá 409. `GET /manager/flows` lista só ativos.
 - Duas requisições concorrentes passam do `existsBy...` e o índice único `(id, version)` rejeita a segunda com `DuplicateKeyException`. Os 4 services convertem isso em `*AlreadyExistsException` (409, mesmo corpo) via `mapDuplicateKey`, sem vazar a mensagem do Mongo. Todo `save` de versão nova deve usá-lo.
 - O `PUT` de workflow cria versão nova em vez de alterar a existente.
@@ -123,3 +123,5 @@ docker compose up -d && ./gradlew bootRun   # só o MongoDB (compose local) e o 
 - O `.dockerignore` deixa no contexto só o que o `gradle bootJar -x test` precisa (`gradle/`, `gradlew`, `*.kts`, `src/`, `license-header.txt`). Se o build passar a precisar de outro arquivo, tire-o do `.dockerignore`.
 - Ordem das camadas do estágio build: arquivos de build, resolução de dependências, depois `src/`. Não volte para `COPY . .` antes do Gradle, senão cada mudança de código rebaixa as dependências.
 - O gate JaCoCo exclui `ManagerApplication`, `OpenApiConfig`, `dto/**`, `exception/**` e `domain/**`. O resto precisa de teste.
+- Boot 4 / Jackson 3: `ObjectMapper`, `JsonMapper`, `YAMLMapper` e o módulo Kotlin vêm de `tools.jackson.*` (`YamlValidationService` usa `YAMLMapper.builder().addModule(kotlinModule())`). Parâmetro primitivo sem default não é mais preenchido com `false` ao faltar no YAML: `ContractField.required` tem default `false` por isso. O `jjwt-jackson` 0.13 ainda usa Jackson 2 (`com.fasterxml`), por isso `jackson-databind` 2.x entra como `runtimeOnly`.
+- Mongo no Boot 4: conexão em `spring.mongodb.*` (não mais `spring.data.mongodb.*`); as autoconfigs ficam em `org.springframework.boot.mongodb.autoconfigure` e `org.springframework.boot.data.mongodb.autoconfigure` (os ITs de segurança as excluem por nome). Testes de MockMvc usam `org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc` e `@AutoConfigureMetrics`; `springmockk` está na 5.x.

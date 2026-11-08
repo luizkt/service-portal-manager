@@ -50,7 +50,7 @@ data class ContractField(
     )
     val type: String,
     @Schema(description = "Campo obrigatório", example = "true")
-    val required: Boolean,
+    val required: Boolean = false,
     val validations: List<FieldValidation> = emptyList(),
 )
 
