@@ -16,7 +16,8 @@ RUN --mount=type=cache,target=/root/.gradle \
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl \
+    && addgroup -S app && adduser -S -G app app
 
 COPY --from=build /app/build/libs/service-portal-manager.jar app.jar
 
@@ -42,5 +43,7 @@ ENV SERVER_PORT=8082 \
     JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
 EXPOSE 8082
+
+USER app
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
