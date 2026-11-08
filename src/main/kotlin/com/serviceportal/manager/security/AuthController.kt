@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.security.MessageDigest
 
 /**
  * `POST /api/auth/tokens` cria um novo JWT — REST-shape (em vez do antigo `/login`).
@@ -70,7 +71,9 @@ class AuthController(
     fun createToken(
         @RequestBody request: LoginRequest,
     ): ResponseEntity<LoginResponse> {
-        if (request.username != adminUser || request.password != adminPass) {
+        val userOk = constantTimeEquals(adminUser, request.username)
+        val passOk = constantTimeEquals(adminPass, request.password)
+        if (!(userOk and passOk)) {
             return ResponseEntity.status(401).build()
         }
         val token = jwtService.generateToken(request.username)
@@ -78,4 +81,9 @@ class AuthController(
             LoginResponse(token, jwtService.expirationSeconds()),
         )
     }
+
+    private fun constantTimeEquals(
+        expected: String,
+        actual: String,
+    ): Boolean = MessageDigest.isEqual(expected.toByteArray(Charsets.UTF_8), actual.toByteArray(Charsets.UTF_8))
 }

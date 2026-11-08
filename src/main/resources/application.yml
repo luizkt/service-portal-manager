@@ -18,12 +18,24 @@ spring:
         url: ${SPRING_BOOT_ADMIN_URL:http://localhost:8085}
         username: ${SBA_USERNAME:admin}
         password: ${SBA_PASSWORD:admin}
+        instance:
+          # Credenciais que o servidor SBA usa para ler os endpoints protegidos do actuator.
+          metadata:
+            user:
+              name: ${ACTUATOR_USERNAME:actuator}
+              password: ${ACTUATOR_PASSWORD:}
 
 server:
   port: ${SERVER_PORT:8082}
 
 manager:
   security:
+    # Defaults só de dev: SecurityDefaultsGuard avisa e aborta a subida com profile prod ou strict=true.
+    strict: ${SECURITY_STRICT:false}
+    # Sem senha default: vazio => sem usuário actuator, endpoints protegidos respondem 401.
+    actuator:
+      username: ${ACTUATOR_USERNAME:actuator}
+      password: ${ACTUATOR_PASSWORD:}
     jwt:
       secret: ${JWT_SECRET:CHANGE_ME_PLEASE_THIS_IS_A_DEV_ONLY_SECRET_AT_LEAST_64_CHARS_LONG_FOR_HS512}
       expiration-seconds: ${JWT_EXPIRATION:3600}
@@ -36,15 +48,19 @@ orchestrator:
   url: ${ORCHESTRATOR_URL:http://localhost:8080}
   admin-username: ${ORCHESTRATOR_ADMIN_USERNAME:admin}
   admin-password: ${ORCHESTRATOR_ADMIN_PASSWORD:admin}
+  connect-timeout-ms: ${ORCHESTRATOR_CONNECT_TIMEOUT_MS:2000}
+  read-timeout-ms: ${ORCHESTRATOR_READ_TIMEOUT_MS:5000}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,threaddump,heapdump,loggers,env,beans,caches
+        include: health,info,metrics,prometheus,threaddump,loggers,env,beans,caches
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
+      probes:
+        enabled: true
   tracing:
     sampling:
       probability: 1.0

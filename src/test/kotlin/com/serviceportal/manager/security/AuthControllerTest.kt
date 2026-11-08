@@ -61,4 +61,17 @@ class AuthControllerTest {
         val resp = controller.createToken(LoginRequest("admin", "wrong"))
         assertThat(resp.statusCode.value()).isEqualTo(401)
     }
+
+    @Test
+    @DisplayName("Credentials come from properties and prefix/suffix variants are rejected")
+    fun customCredentials() {
+        val custom = AuthController(jwtService, "ops", "pässwörd")
+        every { jwtService.generateToken("ops") } returns "tok-ops"
+        every { jwtService.expirationSeconds() } returns 60
+
+        assertThat(custom.createToken(LoginRequest("ops", "pässwörd")).statusCode.value()).isEqualTo(201)
+        assertThat(custom.createToken(LoginRequest("ops", "pässwör")).statusCode.value()).isEqualTo(401)
+        assertThat(custom.createToken(LoginRequest("ops", "pässwörd!")).statusCode.value()).isEqualTo(401)
+        assertThat(custom.createToken(LoginRequest("admin", "admin")).statusCode.value()).isEqualTo(401)
+    }
 }

@@ -2,7 +2,13 @@
 # ─── Build ────────────────────────────────────────────────────────────────────
 FROM gradle:8.14-jdk21-alpine AS build
 WORKDIR /app
-COPY . .
+# Camada de dependências: só os arquivos de build, para não invalidar com mudanças em src/
+COPY gradlew settings.gradle.kts build.gradle.kts license-header.txt ./
+COPY gradle ./gradle
+RUN --mount=type=cache,target=/root/.gradle \
+    gradle dependencies --configuration runtimeClasspath --no-daemon -q > /dev/null \
+    && gradle dependencies --configuration compileClasspath --no-daemon -q > /dev/null
+COPY src ./src
 RUN --mount=type=cache,target=/root/.gradle \
     gradle bootJar --no-daemon -x test
 
@@ -10,7 +16,8 @@ RUN --mount=type=cache,target=/root/.gradle \
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl \
+    && addgroup -S app && adduser -S -G app app
 
 COPY --from=build /app/build/libs/service-portal-manager.jar app.jar
 
@@ -19,16 +26,15 @@ ENV MONGODB_URI=mongodb://localhost:27017/service-portal-manager \
     MONGODB_DATABASE=service-portal-manager
 
 # ── Segurança ──────────────────────────────────────────────────────────────────
-ENV JWT_SECRET=CHANGE_ME_PLEASE_THIS_IS_A_DEV_ONLY_SECRET_AT_LEAST_64_CHARS_LONG_FOR_HS512 \
-    JWT_EXPIRATION=3600 \
+# Segredos (JWT_SECRET, MANAGER_ADMIN_PASSWORD, ACTUATOR_PASSWORD, ORCHESTRATOR_ADMIN_PASSWORD, SBA_PASSWORD)
+# NAO ficam na imagem: injete em runtime.
+ENV JWT_EXPIRATION=3600 \
     JWT_ISSUER=service-portal-manager \
-    MANAGER_ADMIN_USERNAME=admin \
-    MANAGER_ADMIN_PASSWORD=admin
+    MANAGER_ADMIN_USERNAME=admin
 
 # ── Orquestrador (invalidação de cache cross-service) ────────────────────────────
 ENV ORCHESTRATOR_URL=http://localhost:8080 \
-    ORCHESTRATOR_ADMIN_USERNAME=admin \
-    ORCHESTRATOR_ADMIN_PASSWORD=admin
+    ORCHESTRATOR_ADMIN_USERNAME=admin
 
 # ── Servidor ───────────────────────────────────────────────────────────────────
 ENV SERVER_PORT=8082 \
@@ -36,5 +42,11 @@ ENV SERVER_PORT=8082 \
     JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
 EXPOSE 8082
+
+# Liveness independe do MongoDB (o /actuator/health ficaria DOWN sem o banco)
+HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5 \
+    CMD curl -sf http://localhost:${SERVER_PORT}/actuator/health/liveness || exit 1
+
+USER app
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

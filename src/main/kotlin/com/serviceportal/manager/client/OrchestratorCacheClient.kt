@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
+import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestClient
 
 /**
@@ -36,6 +37,8 @@ import org.springframework.web.client.RestClient
  * etc.), apenas loga warning e NÃO propaga — o workflow já foi atualizado com
  * sucesso e o orquestrador recarregará a versão correta no próximo cache miss ou
  * após o TTL.
+ *
+ * Em 401 invalida o token em cache e repete a chamada UMA vez com token novo.
  */
 @Component
 class OrchestratorCacheClient(
@@ -49,14 +52,29 @@ class OrchestratorCacheClient(
         version: String,
     ) {
         try {
-            restClient.delete()
-                .uri("/api/admin/cache/workflows/{flowId}/versions/{version}", flowId, version)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${authService.token()}")
-                .retrieve()
-                .toBodilessEntity()
+            val token = authService.token()
+            try {
+                delete(flowId, version, token)
+            } catch (_: HttpClientErrorException.Unauthorized) {
+                log.debug("Orquestrador devolveu 401; renovando token e repetindo uma vez")
+                authService.invalidate(token)
+                delete(flowId, version, authService.token())
+            }
             log.info("Cache do orquestrador invalidado para {}/{}", flowId, version)
         } catch (ex: Exception) {
             log.warn("Falha ao invalidar cache do orquestrador para {}/{}: {}", flowId, version, ex.message)
         }
+    }
+
+    private fun delete(
+        flowId: String,
+        version: String,
+        token: String,
+    ) {
+        restClient.delete()
+            .uri("/api/admin/cache/workflows/{flowId}/versions/{version}", flowId, version)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .retrieve()
+            .toBodilessEntity()
     }
 }
