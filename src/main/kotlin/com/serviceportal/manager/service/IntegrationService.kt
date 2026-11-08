@@ -49,22 +49,24 @@ class IntegrationService(
         }
         val now = LocalDateTime.now()
         val saved =
-            repository.save(
-                IntegrationDocument(
-                    integrationId = request.integrationId,
-                    version = 1,
-                    type = request.type,
-                    url = request.url,
-                    method = request.method,
-                    headers = request.headers,
-                    timeout = request.timeout,
-                    bodyTemplate = request.bodyTemplate,
-                    responseBody = request.responseBody,
-                    active = true,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
+            mapDuplicateKey({ IntegrationAlreadyExistsException("Integration '${request.integrationId}' version 1 already exists") }) {
+                repository.save(
+                    IntegrationDocument(
+                        integrationId = request.integrationId,
+                        version = 1,
+                        type = request.type,
+                        url = request.url,
+                        method = request.method,
+                        headers = request.headers,
+                        timeout = request.timeout,
+                        bodyTemplate = request.bodyTemplate,
+                        responseBody = request.responseBody,
+                        active = true,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }
         return saved.toDto()
     }
 
@@ -93,22 +95,24 @@ class IntegrationService(
         }
         val now = LocalDateTime.now()
         val newDoc =
-            repository.save(
-                IntegrationDocument(
-                    integrationId = integrationId,
-                    version = newVersion,
-                    type = request.type,
-                    url = request.url,
-                    method = request.method,
-                    headers = request.headers,
-                    timeout = request.timeout,
-                    bodyTemplate = request.bodyTemplate,
-                    responseBody = request.responseBody,
-                    active = true,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
+            mapDuplicateKey({ IntegrationAlreadyExistsException("Integration '$integrationId' version $newVersion already exists") }) {
+                repository.save(
+                    IntegrationDocument(
+                        integrationId = integrationId,
+                        version = newVersion,
+                        type = request.type,
+                        url = request.url,
+                        method = request.method,
+                        headers = request.headers,
+                        timeout = request.timeout,
+                        bodyTemplate = request.bodyTemplate,
+                        responseBody = request.responseBody,
+                        active = true,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }
         return newDoc.toDto()
     }
 

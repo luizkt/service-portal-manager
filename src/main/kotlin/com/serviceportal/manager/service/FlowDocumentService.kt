@@ -53,17 +53,19 @@ class FlowDocumentService(
         }
         val now = LocalDateTime.now()
         val saved =
-            repository.save(
-                FlowDocument(
-                    flowId = meta.flowId,
-                    version = meta.version,
-                    description = meta.description,
-                    active = meta.active,
-                    yamlContent = yamlContent,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
+            mapDuplicateKey({ FlowAlreadyExistsException("Flow '${meta.flowId}' version '${meta.version}' already exists") }) {
+                repository.save(
+                    FlowDocument(
+                        flowId = meta.flowId,
+                        version = meta.version,
+                        description = meta.description,
+                        active = meta.active,
+                        yamlContent = yamlContent,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }
         return saved.toSummary()
     }
 
@@ -109,17 +111,19 @@ class FlowDocumentService(
         val updatedYaml = versioning.updateVersionInYaml(yamlContent, newVersion)
         val now = LocalDateTime.now()
         val newDoc =
-            repository.save(
-                FlowDocument(
-                    flowId = flowId,
-                    version = newVersion,
-                    description = meta.description,
-                    active = true,
-                    yamlContent = updatedYaml,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
+            mapDuplicateKey({ FlowAlreadyExistsException("Calculated version '$newVersion' for flow '$flowId' already exists") }) {
+                repository.save(
+                    FlowDocument(
+                        flowId = flowId,
+                        version = newVersion,
+                        description = meta.description,
+                        active = true,
+                        yamlContent = updatedYaml,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }
         // Invalida a versão alvo do PUT no cache do orquestrador (versão antiga
         // foi superada pela nova versão semântica recém-criada).
         orchestratorCacheClient.evictWorkflow(flowId, version)
