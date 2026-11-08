@@ -13,7 +13,7 @@ atualizado-em: 2026-11-07
 
 Dono das collections `workflows`, `integrations`, `contracts` e `validations` no MongoDB. Guarda o YAML do fluxo como texto bruto e só faz validação leve (`flow.id`, `flow.version`, `flow.contract`, ao menos uma integração). O parse profundo é do `generic-orchestrator`, que busca o YAML aqui. Quando um fluxo muda ou é desativado, o Manager invalida o cache do orquestrador.
 
-<!-- gen:size -->Tamanho: 35 arquivos .kt em `src/main`, 27 em `src/test`.<!-- /gen:size -->
+<!-- gen:size -->Tamanho: 35 arquivos .kt em `src/main`, 28 em `src/test`.<!-- /gen:size -->
 
 Stack: Kotlin 2.0.21, Java 21, Spring Boot 3.4.5 (não atualizar), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.13.0), Spotless/ktlint. Porta `SERVER_PORT` (8082).
 
