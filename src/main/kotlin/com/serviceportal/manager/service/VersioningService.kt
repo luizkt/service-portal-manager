@@ -23,10 +23,10 @@
  */
 package com.serviceportal.manager.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.serviceportal.manager.exception.InvalidFlowDefinitionException
 import org.springframework.stereotype.Service
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.dataformat.yaml.YAMLMapper
 
 /**
  * Regras de versionamento semântico (SemVer 2.0.0) para workflows:
@@ -36,8 +36,8 @@ import org.springframework.stereotype.Service
  */
 @Service
 class VersioningService {
-    private val yamlMapper = ObjectMapper(YAMLFactory())
-    private val jsonMapper = ObjectMapper()
+    private val yamlMapper = YAMLMapper()
+    private val jsonMapper = JsonMapper.builder().build()
 
     enum class ChangeType { MAJOR, MINOR, PATCH }
 

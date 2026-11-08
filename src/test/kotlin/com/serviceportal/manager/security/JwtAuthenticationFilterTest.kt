@@ -75,8 +75,7 @@ class JwtAuthenticationFilterTest {
 
         filter.doFilter(req("Bearer tok"), MockHttpServletResponse(), mockk(relaxed = true))
 
-        val auth = SecurityContextHolder.getContext().authentication
-        assertThat(auth).isNotNull
+        val auth = SecurityContextHolder.getContext().authentication!!
         assertThat(auth.name).isEqualTo("admin")
         assertThat(auth.authorities.map { it.authority }).contains("ROLE_USER")
     }

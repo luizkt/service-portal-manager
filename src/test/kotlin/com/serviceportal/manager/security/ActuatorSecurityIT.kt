@@ -32,9 +32,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
@@ -43,7 +43,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@AutoConfigureObservability
+@AutoConfigureMetrics
 @TestPropertySource(
     properties = [
         "manager.security.jwt.secret=0123456789012345678901234567890123456789012345678901234567890123ABCD",
@@ -51,12 +51,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
         "manager.security.jwt.issuer=manager-test",
         "manager.security.actuator.username=ops",
         "manager.security.actuator.password=s3cret-actuator",
-        "spring.data.mongodb.uri=mongodb://localhost:27017/test-db",
-        "spring.data.mongodb.auto-index-creation=false",
+        "spring.mongodb.uri=mongodb://localhost:27017/test-db",
+        "spring.mongodb.auto-index-creation=false",
         "spring.autoconfigure.exclude=" +
-            "org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration," +
-            "org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration," +
-            "org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration",
+            "org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration," +
+            "org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration," +
+            "org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration",
     ],
 )
 class ActuatorSecurityIT {
