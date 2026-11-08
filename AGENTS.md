@@ -106,4 +106,8 @@ docker compose up -d && ./gradlew bootRun   # só o MongoDB (compose local) e o 
 - O `ObjectMapper` de `YamlValidationService` precisa de `registerKotlinModule()`. Sem ele a conversão para `ContractField` falha em silêncio e `getExample` devolve exemplo vazio.
 - A invalidação de cache engole exceções: se o orquestrador estiver fora, o cache dele fica velho.
 - Todo `.kt` precisa do header de `license-header.txt`, senão o Spotless falha. O arquivo é uma cópia do `license-header.txt` da raiz do monorepo: mantenha igual.
+- A imagem Docker roda como usuário não-root `app` (grupo `app`, criado no estágio runtime). A aplicação só escreve em `/tmp`; se passar a escrever em outro lugar, faça `chown` no `Dockerfile`.
+- O `HEALTHCHECK` da imagem usa `/actuator/health/liveness` (habilitado por `management.endpoint.health.probes.enabled=true`), não `/actuator/health`: o geral fica DOWN sem MongoDB e marcaria o container como unhealthy. Usa `${SERVER_PORT}` (forma shell).
+- O `.dockerignore` deixa no contexto só o que o `gradle bootJar -x test` precisa (`gradle/`, `gradlew`, `*.kts`, `src/`, `license-header.txt`). Se o build passar a precisar de outro arquivo, tire-o do `.dockerignore`.
+- Ordem das camadas do estágio build: arquivos de build, resolução de dependências, depois `src/`. Não volte para `COPY . .` antes do Gradle, senão cada mudança de código rebaixa as dependências.
 - O gate JaCoCo exclui `ManagerApplication`, `OpenApiConfig`, `dto/**`, `exception/**` e `domain/**`. O resto precisa de teste.

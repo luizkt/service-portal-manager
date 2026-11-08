@@ -2,7 +2,13 @@
 # ─── Build ────────────────────────────────────────────────────────────────────
 FROM gradle:8.14-jdk21-alpine AS build
 WORKDIR /app
-COPY . .
+# Camada de dependências: só os arquivos de build, para não invalidar com mudanças em src/
+COPY gradlew settings.gradle.kts build.gradle.kts license-header.txt ./
+COPY gradle ./gradle
+RUN --mount=type=cache,target=/root/.gradle \
+    gradle dependencies --configuration runtimeClasspath --no-daemon -q > /dev/null \
+    && gradle dependencies --configuration compileClasspath --no-daemon -q > /dev/null
+COPY src ./src
 RUN --mount=type=cache,target=/root/.gradle \
     gradle bootJar --no-daemon -x test
 
