@@ -13,7 +13,7 @@ atualizado-em: 2026-11-07
 
 Dono das collections `workflows`, `integrations`, `contracts` e `validations` no MongoDB. Guarda o YAML do fluxo como texto bruto e só faz validação leve (`flow.id`, `flow.version`, `flow.contract`, ao menos uma integração). O parse profundo é do `generic-orchestrator`, que busca o YAML aqui. Quando um fluxo muda ou é desativado, o Manager invalida o cache do orquestrador.
 
-<!-- gen:size -->Tamanho: 33 arquivos .kt em `src/main`, 23 em `src/test`.<!-- /gen:size -->
+<!-- gen:size -->Tamanho: 33 arquivos .kt em `src/main`, 24 em `src/test`.<!-- /gen:size -->
 
 Stack: Kotlin 2.0.21, Java 21, Spring Boot 3.4.5 (não atualizar), Gradle Kotlin DSL, Spring MVC, MongoDB 7, RestClient, JWT HS512 (jjwt 0.13.0), Spotless/ktlint. Porta `SERVER_PORT` (8082).
 
@@ -52,6 +52,7 @@ Contrato, integração e validação usam versão inteira: `update` grava `versi
 | `controller/*` | REST e anotações OpenAPI |
 | `service/FlowDocumentService` | CRUD de workflow, exemplo de payload, soft-delete |
 | `service/{Contract,Integration,Validation}Service` | CRUD versionado dos três recursos |
+| `service/DuplicateKeySupport` | `mapDuplicateKey`: `DuplicateKeyException` do `save` vira a exceção `*AlreadyExistsException` (409) |
 | `service/YamlValidationService` | Metadados do YAML e campos do contrato |
 | `service/VersioningService`, `service/SequentialVersioningService` | SemVer do workflow; versão inteira dos demais |
 | `repository/*` | Interfaces Mongo. `FlowDocumentRepository` usa projeção sem `yamlContent` |
@@ -103,6 +104,7 @@ docker compose up -d && ./gradlew bootRun   # só o MongoDB (compose local) e o 
 - Consultas leves de workflow excluem `yamlContent` por projeção. Para `save()` use sempre `findByFlowIdAndVersionWithYaml`, senão o save apaga o YAML.
 - O Spring Boot 3 não cria índices sozinho e não há `@CompoundIndexes`. O índice único `(id, version)` vem de `mongodb-manager/init-mongo.js`, que só roda com volume vazio (`docker compose down -v` para reaplicar).
 - `DELETE` é soft-delete (`active=false`) e idempotente. Recriar o mesmo `flowId` e `version` dá 409. `GET /manager/flows` lista só ativos.
+- Duas requisições concorrentes passam do `existsBy...` e o índice único `(id, version)` rejeita a segunda com `DuplicateKeyException`. Os 4 services convertem isso em `*AlreadyExistsException` (409, mesmo corpo) via `mapDuplicateKey`, sem vazar a mensagem do Mongo. Todo `save` de versão nova deve usá-lo.
 - O `PUT` de workflow cria versão nova em vez de alterar a existente.
 - O `ObjectMapper` de `YamlValidationService` precisa de `registerKotlinModule()`. Sem ele a conversão para `ContractField` falha em silêncio e `getExample` devolve exemplo vazio.
 - A invalidação de cache é best-effort e síncrona dentro do PUT/DELETE: engole exceções (se o orquestrador estiver fora, o cache dele fica velho), mas falha rápido pelos timeouts de conexão e leitura.

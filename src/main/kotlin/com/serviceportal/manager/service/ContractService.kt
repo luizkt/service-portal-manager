@@ -49,16 +49,18 @@ class ContractService(
         }
         val now = LocalDateTime.now()
         val saved =
-            repository.save(
-                ContractDocument(
-                    contractId = request.contractId,
-                    version = 1,
-                    fields = request.fields,
-                    active = true,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
+            mapDuplicateKey({ ContractAlreadyExistsException("Contract '${request.contractId}' version 1 already exists") }) {
+                repository.save(
+                    ContractDocument(
+                        contractId = request.contractId,
+                        version = 1,
+                        fields = request.fields,
+                        active = true,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }
         return saved.toDto()
     }
 
@@ -87,16 +89,18 @@ class ContractService(
         }
         val now = LocalDateTime.now()
         val newDoc =
-            repository.save(
-                ContractDocument(
-                    contractId = contractId,
-                    version = newVersion,
-                    fields = request.fields,
-                    active = true,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
+            mapDuplicateKey({ ContractAlreadyExistsException("Contract '$contractId' version $newVersion already exists") }) {
+                repository.save(
+                    ContractDocument(
+                        contractId = contractId,
+                        version = newVersion,
+                        fields = request.fields,
+                        active = true,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }
         return newDoc.toDto()
     }
 

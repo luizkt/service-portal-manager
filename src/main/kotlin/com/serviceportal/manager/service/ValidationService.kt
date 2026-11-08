@@ -49,22 +49,24 @@ class ValidationService(
         }
         val now = LocalDateTime.now()
         val saved =
-            repository.save(
-                ValidationDocument(
-                    validationId = request.validationId,
-                    version = 1,
-                    type = request.type,
-                    url = request.url,
-                    method = request.method,
-                    headers = request.headers,
-                    timeout = request.timeout,
-                    bodyTemplate = request.bodyTemplate,
-                    responseBody = request.responseBody,
-                    active = true,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
+            mapDuplicateKey({ ValidationAlreadyExistsException("Validation '${request.validationId}' version 1 already exists") }) {
+                repository.save(
+                    ValidationDocument(
+                        validationId = request.validationId,
+                        version = 1,
+                        type = request.type,
+                        url = request.url,
+                        method = request.method,
+                        headers = request.headers,
+                        timeout = request.timeout,
+                        bodyTemplate = request.bodyTemplate,
+                        responseBody = request.responseBody,
+                        active = true,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }
         return saved.toDto()
     }
 
@@ -93,22 +95,24 @@ class ValidationService(
         }
         val now = LocalDateTime.now()
         val newDoc =
-            repository.save(
-                ValidationDocument(
-                    validationId = validationId,
-                    version = newVersion,
-                    type = request.type,
-                    url = request.url,
-                    method = request.method,
-                    headers = request.headers,
-                    timeout = request.timeout,
-                    bodyTemplate = request.bodyTemplate,
-                    responseBody = request.responseBody,
-                    active = true,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
+            mapDuplicateKey({ ValidationAlreadyExistsException("Validation '$validationId' version $newVersion already exists") }) {
+                repository.save(
+                    ValidationDocument(
+                        validationId = validationId,
+                        version = newVersion,
+                        type = request.type,
+                        url = request.url,
+                        method = request.method,
+                        headers = request.headers,
+                        timeout = request.timeout,
+                        bodyTemplate = request.bodyTemplate,
+                        responseBody = request.responseBody,
+                        active = true,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }
         return newDoc.toDto()
     }
 
