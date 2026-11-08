@@ -44,6 +44,10 @@ ENV SERVER_PORT=8082 \
 
 EXPOSE 8082
 
+# Liveness independe do MongoDB (o /actuator/health ficaria DOWN sem o banco)
+HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5 \
+    CMD curl -sf http://localhost:${SERVER_PORT}/actuator/health/liveness || exit 1
+
 USER app
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
