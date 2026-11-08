@@ -59,6 +59,8 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+      probes:
+        enabled: true
   tracing:
     sampling:
       probability: 1.0
